@@ -1,0 +1,14 @@
+[Unit]
+Description=PraxiProof web app
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/praxiproof
+Environment=PRAXIPROOF_DATA_DIR=%h/praxiproof-data
+Environment=PRAXIPROOF_OLLAMA_URL=http://127.0.0.1:11434
+ExecStart=%h/praxiproof/.venv/bin/praxiproof serve --host 0.0.0.0 --port 8090
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

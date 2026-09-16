@@ -1,0 +1,31 @@
+{
+  "title": "Video A — compliant fan replacement",
+  "video_name": "fan_replacement_A.mp4",
+  "expected": {
+    "R-001": "PASS",
+    "R-002": "PASS",
+    "R-003": "PASS",
+    "R-004": "PASS",
+    "R-005": "PASS",
+    "R-006": "PASS",
+    "R-007": "PASS",
+    "R-008": "PASS"
+  },
+  "observation": {
+    "source_id": "fan_replacement_A",
+    "duration": 150.0,
+    "complete": true,
+    "backend": "fixture",
+    "model": null,
+    "events": [
+      {"event_id": "O-001", "label": "bezel_removed", "description": "Front bezel pulled off the chassis", "start": 4.0, "end": 11.5, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-002", "label": "failed_fan_identified", "description": "Technician points at the fan module whose amber fault LED is lit", "start": 15.0, "end": 20.0, "time_uncertainty": 0.5, "confidence": 0.86},
+      {"event_id": "O-003", "label": "new_fan_unpacked", "description": "Technician lifts the new fan module out of its box", "start": 24.0, "end": 31.5, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-004", "label": "fan_unlocked", "description": "Release button on the fan module pressed", "start": 38.0, "end": 40.0, "time_uncertainty": 0.5, "confidence": 0.85},
+      {"event_id": "O-005", "label": "fan_removed", "description": "Failed fan module slid out of the bay", "start": 40.0, "end": 45.5, "time_uncertainty": 0.5, "confidence": 0.93},
+      {"event_id": "O-006", "label": "fan_inserted", "description": "New fan module pushed into the bay until it latches", "start": 52.0, "end": 57.5, "time_uncertainty": 0.5, "confidence": 0.94},
+      {"event_id": "O-007", "label": "fan_health_verified", "description": "Technician confirms the amber LED on the new fan module is off, then checks the fan sensors on the BMC web page", "start": 70.0, "end": 88.0, "time_uncertainty": 0.5, "confidence": 0.88},
+      {"event_id": "O-008", "label": "bezel_installed", "description": "Front bezel clipped back onto the chassis", "start": 98.0, "end": 108.0, "time_uncertainty": 0.5, "confidence": 0.9}
+    ]
+  }
+}

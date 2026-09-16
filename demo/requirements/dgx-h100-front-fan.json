@@ -1,0 +1,73 @@
+{
+  "source_url": "https://docs.nvidia.com/dgx/dgxh100-service-manual/front-fan-replacement.html",
+  "manual_file": "manuals/dgx-h100-front-fan-replacement.html",
+  "procedure": "DGX H100 Front Fan Module Replacement",
+  "events": [
+    {"label": "failed_fan_identified", "description": "Failed fan module identified from BMC sensor data, the nvsm show fans output, or its lit fault LED"},
+    {"label": "new_fan_unpacked", "description": "New fan module taken out of its packaging and held ready to install"},
+    {"label": "bezel_removed", "description": "Front bezel removed from the system, exposing the fan modules"},
+    {"label": "fan_unlocked", "description": "Release button on the failed fan module pressed to unlock it"},
+    {"label": "fan_removed", "description": "Failed fan module pulled fully out of its bay"},
+    {"label": "fan_inserted", "description": "New fan module pushed fully into the empty fan bay"},
+    {"label": "fan_health_verified", "description": "New fan confirmed healthy: amber LED off, or BMC sensors or nvsm show fans checked"},
+    {"label": "bezel_installed", "description": "Front bezel reinstalled on the system"}
+  ],
+  "requirements": [
+    {
+      "rule_id": "R-001",
+      "statement": "Identify the failed fan module through the BMC, nvsm, or its fault LED before removing it",
+      "constraint": {"type": "PRECONDITION", "a": "failed_fan_identified", "b": "fan_removed"},
+      "category": "procedure", "severity": "major", "observable": false,
+      "quote": "Identify failed front fan module through BMC"
+    },
+    {
+      "rule_id": "R-002",
+      "statement": "Take the new fan module out of its packaging and be ready to install it before removing the old one",
+      "constraint": {"type": "PRECONDITION", "a": "new_fan_unpacked", "b": "fan_removed"},
+      "category": "procedure", "severity": "major", "observable": true,
+      "quote": "Remove the new fan module from its packaging"
+    },
+    {
+      "rule_id": "R-003",
+      "statement": "Replace the old fan with the new one within 30 seconds to avoid overheating system components",
+      "constraint": {"type": "MAX_INTERVAL", "a": "fan_removed", "b": "fan_inserted", "seconds": 30},
+      "category": "safety", "severity": "critical", "observable": true,
+      "quote": "within 30 seconds"
+    },
+    {
+      "rule_id": "R-004",
+      "statement": "Remove the bezel to expose the fan modules before removing a fan",
+      "constraint": {"type": "BEFORE", "a": "bezel_removed", "b": "fan_removed"},
+      "category": "procedure", "severity": "major", "observable": true,
+      "quote": "to expose the fan modules"
+    },
+    {
+      "rule_id": "R-005",
+      "statement": "Unlock the fan module by pressing the release button before pulling it out",
+      "constraint": {"type": "BEFORE", "a": "fan_unlocked", "b": "fan_removed"},
+      "category": "procedure", "severity": "major", "observable": true,
+      "quote": "pressing the release button"
+    },
+    {
+      "rule_id": "R-006",
+      "statement": "Confirm the new fan module is healthy through the BMC, its amber LED, or nvsm show fans",
+      "constraint": {"type": "MUST_HAVE", "event": "fan_health_verified"},
+      "category": "verification", "severity": "critical", "observable": true,
+      "quote": "Confirm that the fan module is healthy"
+    },
+    {
+      "rule_id": "R-007",
+      "statement": "Check fan health after the new fan module is installed",
+      "constraint": {"type": "AFTER", "a": "fan_health_verified", "b": "fan_inserted"},
+      "category": "verification", "severity": "major", "observable": true,
+      "quote": "Confirm that the fan module is healthy"
+    },
+    {
+      "rule_id": "R-008",
+      "statement": "Reinstall the bezel when the replacement is complete",
+      "constraint": {"type": "MUST_HAVE", "event": "bezel_installed"},
+      "category": "procedure", "severity": "minor", "observable": true,
+      "quote": "Install the bezel"
+    }
+  ]
+}

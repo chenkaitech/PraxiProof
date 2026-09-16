@@ -1,0 +1,30 @@
+{
+  "title": "Video B — health check skipped",
+  "video_name": "fan_replacement_B.mp4",
+  "expected": {
+    "R-001": "PASS",
+    "R-002": "PASS",
+    "R-003": "PASS",
+    "R-004": "PASS",
+    "R-005": "PASS",
+    "R-006": "VIOLATION",
+    "R-007": "VIOLATION",
+    "R-008": "PASS"
+  },
+  "observation": {
+    "source_id": "fan_replacement_B",
+    "duration": 130.0,
+    "complete": true,
+    "backend": "fixture",
+    "model": null,
+    "events": [
+      {"event_id": "O-001", "label": "bezel_removed", "description": "Front bezel pulled off the chassis", "start": 5.0, "end": 12.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-002", "label": "failed_fan_identified", "description": "Technician points at the fan module whose amber fault LED is lit", "start": 15.0, "end": 18.0, "time_uncertainty": 0.5, "confidence": 0.86},
+      {"event_id": "O-003", "label": "new_fan_unpacked", "description": "Technician lifts the new fan module out of its box", "start": 20.0, "end": 28.0, "time_uncertainty": 0.5, "confidence": 0.91},
+      {"event_id": "O-004", "label": "fan_unlocked", "description": "Release button on the fan module pressed", "start": 36.0, "end": 38.0, "time_uncertainty": 0.5, "confidence": 0.86},
+      {"event_id": "O-005", "label": "fan_removed", "description": "Failed fan module slid out of the bay", "start": 38.0, "end": 43.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-006", "label": "fan_inserted", "description": "New fan module pushed into the bay until it latches", "start": 50.0, "end": 55.0, "time_uncertainty": 0.5, "confidence": 0.93},
+      {"event_id": "O-007", "label": "bezel_installed", "description": "Front bezel clipped back on right after the fan is seated", "start": 80.0, "end": 90.0, "time_uncertainty": 0.5, "confidence": 0.9}
+    ]
+  }
+}
