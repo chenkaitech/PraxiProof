@@ -20,6 +20,8 @@ def test_timing_violation_reports_measurement(reference, observation_fixture):
     verdict = next(v for v in evaluate(reference[0], observation) if v.rule_id == "R-003")
     assert verdict.measured == {"observed_seconds": 45.0, "uncertainty_seconds": 1.0, "required_seconds": 30}
     assert verdict.observed_event_ids == ["O-005", "O-006"]
+    assert verdict.reason == "fan_removed → fan_inserted took 45.0s (±1.0s), limit 30s"
+    assert (verdict.reason_code, verdict.reason_params["interval"], verdict.reason_params["limit"]) == ("interval.violation", "45.0", "30")
 
 
 def _rules(*constraints: dict, observable: bool = True) -> RequirementSet:
@@ -42,11 +44,12 @@ def _rules(*constraints: dict, observable: bool = True) -> RequirementSet:
     )
 
 
-def _obs(*events: tuple, complete: bool = True, duration: float = 100.0) -> Observation:
+def _obs(*events: tuple, complete: bool = True, duration: float = 100.0, approximate: bool = False) -> Observation:
     return Observation(
         source_id="V",
         duration=duration,
         complete=complete,
+        approximate=approximate,
         backend="test",
         events=[
             ObservedEvent(event_id=f"O-{i}", label=label, start=start, end=end, time_uncertainty=unc, confidence=conf)
@@ -67,6 +70,9 @@ def test_must_have_statuses():
     assert _status(rules, _obs(("check_done", 1, 2, 0, 0.3))) == [Status.UNVERIFIED]
     hidden = _rules({"type": "MUST_HAVE", "event": "check_done"}, observable=False)
     assert _status(hidden, _obs()) == [Status.UNVERIFIED]
+    v = evaluate(hidden, _obs())[0]
+    assert v.reason == "check_done is not expected to be visible in the operation video; the step is mandatory"
+    assert v.needed_evidence.startswith("Separate evidence") and v.needed_code == "needed.separate"
 
 
 def test_must_not_statuses():
@@ -150,3 +156,42 @@ def test_max_interval_uses_worst_repetition():
     verdict = evaluate(rules, observation)[0]
     assert verdict.status == Status.VIOLATION
     assert verdict.measured["observed_seconds"] == 45.0
+
+
+def _verdict(rules: RequirementSet, observation: Observation):
+    return evaluate(rules, observation)[0]
+
+
+def test_approximate_observer_does_not_flag_count_shortfall():
+    rules = _rules({"type": "COUNT", "event": "fan_installed", "min_count": 6})
+    two = [("fan_installed", t, t + 5, 0.5, 0.8) for t in (10, 30)]
+    assert _status(rules, _obs(*two)) == [Status.VIOLATION]
+    v = _verdict(rules, _obs(*two, approximate=True))
+    assert (v.status, v.reason_code, v.needed_code) == (Status.UNVERIFIED, "count.approximate", "needed.count_review")
+    assert v.reason == "fan_installed observed 2 of 6 times; the video observer can miss repeated back-to-back actions"
+    assert _status(rules, _obs(approximate=True)) == [Status.VIOLATION]
+
+
+def test_approximate_observer_softens_isolated_order_conflicts():
+    rules = _rules({"type": "BEFORE", "a": "fan_installed", "b": "psu_installed"})
+    stray = [("fan_installed", t, t + 5, 0.5, 0.8) for t in (10, 20, 30)] + [("psu_installed", t, t + 5, 0.5, 0.8) for t in (4, 40, 50)]
+    assert _status(rules, _obs(*stray)) == [Status.VIOLATION]
+    v = _verdict(rules, _obs(*stray, approximate=True))
+    assert (v.status, v.reason_code, v.needed_code) == (Status.UNVERIFIED, "order.isolated", "needed.order_review")
+    assert v.observed_event_ids and v.observation_evidence_ids == []
+
+    reversed_order = [("psu_installed", t, t + 5, 0.5, 0.8) for t in (5, 12)] + [("fan_installed", t, t + 5, 0.5, 0.8) for t in (30, 40)]
+    assert _status(rules, _obs(*reversed_order, approximate=True)) == [Status.VIOLATION]
+
+
+def test_approximate_observer_softens_isolated_after_and_precondition_conflicts():
+    after = _rules({"type": "AFTER", "a": "health_checked", "b": "fan_inserted"})
+    events = [("fan_inserted", t, t + 2, 0.5, 0.8) for t in (10, 12, 50)] + [("health_checked", t, t + 2, 0.5, 0.8) for t in (20, 25)]
+    assert _status(after, _obs(*events)) == [Status.VIOLATION]
+    assert _verdict(after, _obs(*events, approximate=True)).reason_code == "order.isolated"
+
+    pre = _rules({"type": "PRECONDITION", "a": "power_off", "b": "cover_opened"})
+    events = [("cover_opened", t, t + 2, 0.5, 0.8) for t in (2, 30, 35)] + [("power_off", 10, 12, 0.5, 0.8)]
+    assert _status(pre, _obs(*events)) == [Status.VIOLATION]
+    v = _verdict(pre, _obs(*events, approximate=True))
+    assert (v.status, v.reason_code) == (Status.UNVERIFIED, "precondition.isolated")

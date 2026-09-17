@@ -26,5 +26,5 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
     if settings.video_backend == "local_vlm":
         from praxiproof.video.local_vlm_adapter import LocalVLMBackend
 
-        return LocalVLMBackend(llm, settings.vlm_model)
+        return LocalVLMBackend(llm, settings.vlm_model, thinking=settings.vlm_thinking)
     raise ValueError(f"unknown video backend: {settings.video_backend}")

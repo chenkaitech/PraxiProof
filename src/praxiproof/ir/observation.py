@@ -23,6 +23,7 @@ class Observation(BaseModel):
     source_id: str
     duration: float
     complete: bool = True
+    approximate: bool = False
     backend: str
     model: str | None = None
     events: list[ObservedEvent]

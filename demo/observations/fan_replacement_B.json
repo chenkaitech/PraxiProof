@@ -1,5 +1,6 @@
 {
   "title": "Video B — health check skipped",
+  "title_zh": "视频 B — 跳过了健康检查",
   "video_name": "fan_replacement_B.mp4",
   "expected": {
     "R-001": "PASS",

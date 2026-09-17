@@ -1,5 +1,6 @@
 {
   "title": "Video A — compliant fan replacement",
+  "title_zh": "视频 A — 合规的风扇更换",
   "video_name": "fan_replacement_A.mp4",
   "expected": {
     "R-001": "PASS",

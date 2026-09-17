@@ -24,8 +24,8 @@ class FakeLLM:
         self.json_calls: list[dict[str, Any]] = []
         self.chat_calls: list[list[dict]] = []
 
-    def chat_json(self, model, messages, schema, images=None):
-        self.json_calls.append({"model": model, "messages": messages, "schema": schema, "images": images})
+    def chat_json(self, model, messages, schema, images=None, think=None):
+        self.json_calls.append({"model": model, "messages": messages, "schema": schema, "images": images, "think": think})
         return self.json_handler(model, messages, schema, images)
 
     def chat(self, model, messages, tools=None):
@@ -57,6 +57,7 @@ def settings(tmp_path: Path) -> Settings:
         ollama_url="http://127.0.0.1:9",
         llm_model="fake-llm",
         vlm_model="fake-vlm",
+        vlm_thinking=False,
         video_backend="local_vlm",
         sop_bp_url=None,
         data_dir=tmp_path / "data",

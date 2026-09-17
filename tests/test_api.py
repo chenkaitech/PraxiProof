@@ -54,7 +54,9 @@ def test_manual_upload_compiles_rules(client):
 
 def test_demo_run_review_skill_and_dashboard(client):
     manual = _upload_manual(client)
-    assert {o["name"] for o in client.get("/api/demo/observations").json()} == {"fan_replacement_A", "fan_replacement_B", "fan_replacement_C"}
+    demos = client.get("/api/demo/observations").json()
+    assert {o["name"] for o in demos} == {"fan_replacement_A", "fan_replacement_B", "fan_replacement_C"}
+    assert all(o["title_zh"] for o in demos)
 
     r = client.post("/api/runs", json={"manual_id": manual["id"], "demo_observation": "fan_replacement_C"})
     assert r.status_code == 202
@@ -66,6 +68,8 @@ def test_demo_run_review_skill_and_dashboard(client):
     finding = run["findings"][0]
     assert finding["kind"] == "Timing Violation" and finding["measured"]["observed_seconds"] == 45.0
     assert "30 seconds" in finding["manual"][0]["text"]
+    assert finding["reason_code"] == "interval.violation"
+    assert finding["reason_params"] == {"a": "fan_removed", "b": "fan_inserted", "limit": "30", "interval": "45.0", "uncertainty": "1.0"}
     assert finding["video"][0]["start"] == 72.1
 
     reviewed = client.post(f"/api/runs/{run['id']}/verdicts/{finding['rule_id']}/review", json={"decision": "rejected"}).json()
@@ -105,6 +109,50 @@ def test_missing_step_result(client):
     assert {f["kind"] for f in run["findings"]} == {"Missing Step"}
 
 
+def test_pipeline_from_uploaded_manual_and_demo_observation(client):
+    html = (DEMO_DIR / "manuals" / "dgx-h100-front-fan-replacement.html").read_bytes()
+    r = client.post(
+        "/api/pipelines",
+        files={"manual": ("dgx-fan.html", html, "text/html")},
+        data={"procedure": "Front Fan Module Replacement", "demo_observation": "fan_replacement_C"},
+    )
+    assert r.status_code == 202, r.text
+    pipeline = client.get(f"/api/pipelines/{r.json()['id']}").json()
+    assert pipeline["status"] == "done", pipeline.get("error")
+    assert pipeline["manual"]["status"] == "ready" and pipeline["run"]["result"] == "Timing Violation"
+    assert pipeline["result"] == "Timing Violation"
+
+    skills = client.get("/api/skills").json()
+    assert [s["id"] for s in skills] == [pipeline["skill_id"]] and skills[0]["review_status"] == "pending"
+    approved = client.post(f"/api/skills/{pipeline['skill_id']}/approve").json()
+    assert approved["review_status"] == "approved" and approved["reviewed_at"]
+
+
+def test_pipeline_with_existing_manual_and_uploaded_video(client, make_video):
+    manual = _upload_manual(client)
+    r = client.post(
+        "/api/pipelines",
+        files={"video": ("fan.mp4", make_video(20).read_bytes(), "video/mp4")},
+        data={"manual_id": manual["id"], "video_note": " edited: cover step removed "},
+    )
+    assert r.status_code == 202, r.text
+    pipeline = client.get(f"/api/pipelines/{r.json()['id']}").json()
+    assert pipeline["status"] == "done", pipeline.get("error")
+    assert pipeline["video_id"] == "VID-001" and pipeline["run"]["result"] == "Timing Violation"
+    assert client.get("/api/videos").json()[0]["note"] == "edited: cover step removed"
+    assert client.get(f"/api/runs/{pipeline['run_id']}").json()["video_note"] == "edited: cover step removed"
+    assert client.get("/api/pipelines").json()[0]["id"] == pipeline["id"]
+
+
+def test_pipeline_validation(client):
+    manual = _upload_manual(client)
+    assert client.post("/api/pipelines", data={"demo_observation": "fan_replacement_A"}).status_code == 400
+    assert client.post("/api/pipelines", data={"manual_id": manual["id"]}).status_code == 400
+    both = client.post("/api/pipelines", data={"manual_id": manual["id"], "video_id": "VID-404", "demo_observation": "fan_replacement_A"})
+    assert both.status_code == 400
+    assert client.post("/api/pipelines", data={"manual_id": "MAN-404", "demo_observation": "fan_replacement_A"}).status_code == 404
+
+
 def test_invalid_requests(client):
     assert client.post("/api/videos", files={"file": ("x.mp4", b"not a video", "video/mp4")}).status_code == 400
     assert client.get("/api/runs/V-999").status_code == 404
@@ -121,15 +169,20 @@ def test_agent_uses_tools(client):
         {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "search_manual", "arguments": {"manual_id": manual["id"], "query": "30 seconds overheating"}}}]},
         {"role": "assistant", "content": "R-003 was violated: 45.0s observed vs 30s allowed."},
     ]
-    r = client.post("/api/agent/ask", json={"question": "Was the 30 second rule respected?", "run_id": run_id}).json()
+    r = client.post("/api/agent/ask", json={"question": "是否遵守了 30 秒规则？", "run_id": run_id, "language": "zh"}).json()
+    assert "Simplified Chinese" in client.fake.chat_calls[0][0]["content"]
     assert r["answer"].startswith("R-003 was violated")
     assert [t["tool"] for t in r["tool_calls"]] == ["get_verification_report", "search_manual"]
     tool_messages = [m for m in client.fake.chat_calls[-1] if m.get("role") == "tool"]
     assert "VIOLATION" in tool_messages[0]["content"]
+    assert "01:12.1" in tool_messages[0]["content"] and "Replacing and Returning the Front Fan Module" in tool_messages[0]["content"]
     assert "within 30 seconds" in tool_messages[1]["content"]
 
 
 def test_health_and_index(client):
     health = client.get("/health").json()
     assert health["status"] == "ok" and health["models"] == {"llm": True, "vlm": True}
-    assert "PraxiProof" in client.get("/").text
+    index = client.get("/")
+    assert "PraxiProof" in index.text and index.headers["cache-control"] == "no-cache"
+    assert '/static/app.js?v=' in index.text and '/static/i18n.js?v=' in index.text and '/static/styles.css?v=' in index.text
+    assert client.get("/static/i18n.js").headers["cache-control"] == "no-cache"

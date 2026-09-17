@@ -38,11 +38,13 @@ def test_coarse_to_fine_observation(make_video):
     observation, evidence = LocalVLMBackend(fake, "vlm").observe(video, "VID-001", VOCAB, "fan replacement")
 
     assert [e.label for e in observation.events] == ["fan_removed"]
+    assert observation.approximate is True
     event = observation.events[0]
     assert 8.0 <= event.start <= 9.5 and 10.5 <= event.end <= 12.5
     assert event.confidence == 0.8 and event.time_uncertainty <= 0.5
     assert evidence[0].locator.frame_start == round(event.start * 10)
     assert evidence[0].source_id == "VID-001" and evidence[0].model == "vlm"
+    assert {c["think"] for c in fake.json_calls} == {False}
     coarse_calls = [c for c in fake.json_calls if "events" in c["schema"]["properties"]]
     assert len(coarse_calls) == 4
     assert coarse_calls[0]["schema"]["properties"]["events"]["items"]["properties"]["label"]["enum"] == ["fan_removed", "fan_inserted"]
@@ -60,3 +62,5 @@ def test_unconfirmed_candidate_becomes_low_confidence(make_video):
     assert len(observation.events) == 1
     assert observation.events[0].label == "fan_inserted"
     assert observation.events[0].confidence <= 0.4
+
+

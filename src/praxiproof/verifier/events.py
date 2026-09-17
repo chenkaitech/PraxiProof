@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from praxiproof.ir.observation import Observation, ObservedEvent
 from praxiproof.ir.requirement import Requirement
 from praxiproof.ir.verification import Status, Verdict
+from praxiproof.verifier.messages import render
 
 
 @dataclass
@@ -22,6 +23,10 @@ class EventIndex:
     def complete(self) -> bool:
         return self.observation.complete
 
+    @property
+    def approximate(self) -> bool:
+        return self.observation.approximate
+
     def confident(self, label: str) -> list[ObservedEvent]:
         return self._confident.get(label, [])
 
@@ -32,15 +37,20 @@ class EventIndex:
 def verdict(
     req: Requirement,
     status: Status,
-    reason: str,
+    code: str,
+    params: dict[str, str],
     events: list[ObservedEvent] = (),
     measured: dict | None = None,
-    needed_evidence: str | None = None,
+    needed: str | None = None,
 ) -> Verdict:
     return Verdict(
         rule_id=req.rule_id,
         status=status,
-        reason=reason,
+        reason=render(code, params),
+        reason_code=code,
+        reason_params=params,
+        needed_code=needed,
+        needed_evidence=render(needed, params) if needed else None,
         constraint=req.constraint,
         category=req.category,
         severity=req.severity,
@@ -49,7 +59,6 @@ def verdict(
         requirement_evidence_ids=list(req.evidence_ids),
         observation_evidence_ids=[e.evidence_id for e in events if e.evidence_id],
         measured=measured,
-        needed_evidence=needed_evidence,
     )
 
 
@@ -57,27 +66,11 @@ def unseen_verdict(
     req: Requirement, index: EventIndex, missing: list[str], absence_is_violation: bool, context: str
 ) -> Verdict:
     weak = [e for label in missing for e in index.weak(label)]
-    names = ", ".join(missing)
+    params = {"events": ", ".join(missing), "context": context, "a": req.constraint.a or "", "b": req.constraint.b or ""}
     if weak:
-        return verdict(
-            req,
-            Status.UNVERIFIED,
-            f"{names} only detected with low confidence; {context}",
-            weak,
-            needed_evidence=f"A clearer view of: {names}",
-        )
+        return verdict(req, Status.UNVERIFIED, "unseen.weak", params, weak, needed="needed.clearer_view")
     if not req.observable:
-        return verdict(
-            req,
-            Status.UNVERIFIED,
-            f"{names} is not expected to be visible in the operation video; {context}",
-            needed_evidence=f"Separate evidence (log, screenshot, or another camera angle) showing: {names}",
-        )
+        return verdict(req, Status.UNVERIFIED, "unseen.hidden", params, needed="needed.separate")
     if absence_is_violation and index.complete:
-        return verdict(req, Status.VIOLATION, f"{names} was not observed anywhere in the video; {context}")
-    return verdict(
-        req,
-        Status.INSUFFICIENT_EVIDENCE,
-        f"{names} was not observed; {context}",
-        needed_evidence=f"Video coverage that includes: {names}",
-    )
+        return verdict(req, Status.VIOLATION, "unseen.violation", params)
+    return verdict(req, Status.INSUFFICIENT_EVIDENCE, "unseen.insufficient", params, needed="needed.coverage")

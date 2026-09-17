@@ -3,11 +3,13 @@ import json
 import logging
 import shutil
 from collections.abc import Callable
+from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from praxiproof.compiler.agent_skill import build_skill_ir, write_skill, zip_dir
-from praxiproof.config import Settings
+from praxiproof.config import Settings, save_overrides, validate_changes
 from praxiproof.constraints.compiler import compile_requirements
 from praxiproof.constraints.engine import evaluate
 from praxiproof.constraints.schema import ConstraintType
@@ -17,7 +19,7 @@ from praxiproof.ir.observation import Observation
 from praxiproof.ir.requirement import RequirementSet
 from praxiproof.ir.verification import Status, Verdict, VerificationReport
 from praxiproof.llm import LLM, LLMError
-from praxiproof.store import Store
+from praxiproof.store import NotFound, Store
 from praxiproof.verifier.aligner import align, llm_matcher
 from praxiproof.verifier.evidence import traceability
 from praxiproof.video.backend import VideoBackend, get_backend
@@ -60,7 +62,16 @@ class PraxiProof:
         for sub in ("manuals", "videos", "skills", "frames"):
             (self.data_dir / sub).mkdir(parents=True, exist_ok=True)
         self.store = store or Store(self.data_dir / "praxiproof.db")
-        self._backend_factory = backend_factory or (lambda: get_backend(settings, llm))
+        self._backend_factory = backend_factory or (lambda: get_backend(self.settings, self.llm))
+
+    def update_settings(self, changes: dict[str, Any], models: list[dict[str, Any]] | None) -> Settings:
+        clean = validate_changes(changes, models)
+        updated = replace(self.settings, **clean)
+        if updated.video_backend == "nvidia_sop" and not updated.sop_bp_url:
+            raise ValueError("sop_bp_url is required for the nvidia_sop video backend")
+        save_overrides(updated)
+        self.settings = updated
+        return updated
 
     def add_manual(self, upload: Path, filename: str, procedure: str | None) -> dict[str, Any]:
         record = self.store.create(
@@ -103,9 +114,9 @@ class PraxiProof:
             raise ValueError(f"manual {manual_id} is not ready (status: {record.get('status')})")
         return RequirementSet.model_validate(record["requirement_set"])
 
-    def add_video(self, upload: Path, filename: str) -> dict[str, Any]:
+    def add_video(self, upload: Path, filename: str, note: str | None = None) -> dict[str, Any]:
         meta = probe(upload)
-        record = self.store.create("videos", {"filename": filename, "meta": meta.model_dump()})
+        record = self.store.create("videos", {"filename": filename, "meta": meta.model_dump(), "note": (note or "").strip() or None})
         target = self.data_dir / "videos" / f"{record['id']}{Path(filename).suffix.lower() or '.mp4'}"
         shutil.move(upload, target)
         size = target.stat().st_size
@@ -211,6 +222,60 @@ class PraxiProof:
         verdict.review = decision
         return self.store.update("runs", run_id, report=report.model_dump(mode="json"), **_result_summary(report))
 
+    def create_pipeline(
+        self, manual_id: str, video_id: str | None, observation: dict[str, Any] | None, label: str | None
+    ) -> dict[str, Any]:
+        manual = self.store.get("manuals", manual_id)
+        if (video_id is None) == (observation is None):
+            raise ValueError("provide exactly one of video_id or observation")
+        video_name = self.store.get("videos", video_id)["filename"] if video_id else (label or "observation.json")
+        if observation is not None:
+            Observation.model_validate(observation)
+        return self.store.create(
+            "pipelines",
+            {
+                "manual_id": manual_id,
+                "manual_name": manual["filename"],
+                "video_id": video_id,
+                "video_name": video_name,
+                "input_observation": observation,
+                "status": "queued",
+                "stage": None,
+                "run_id": None,
+                "skill_id": None,
+                "error": None,
+            },
+        )
+
+    def process_pipeline(self, pipeline_id: str) -> None:
+        pipeline = self.store.update("pipelines", pipeline_id, status="processing", stage="compiling")
+        try:
+            manual_id = pipeline["manual_id"]
+            if self.store.get("manuals", manual_id).get("status") != "ready":
+                self.process_manual(manual_id)
+                manual = self.store.get("manuals", manual_id)
+                if manual.get("status") != "ready":
+                    raise ValueError(f"manual {manual_id} failed to compile: {manual.get('error')}")
+
+            self.store.update("pipelines", pipeline_id, stage="verifying")
+            run = self.create_run(manual_id, pipeline["video_id"], pipeline["input_observation"], pipeline["video_name"])
+            self.store.update("pipelines", pipeline_id, run_id=run["id"])
+            self.process_run(run["id"])
+            run = self.store.get("runs", run["id"])
+            if run.get("status") != "done":
+                raise ValueError(f"verification run {run['id']} failed: {run.get('error')}")
+
+            self.store.update("pipelines", pipeline_id, stage="packaging")
+            skill = self.compile_skill(run["id"])
+            self.store.update("pipelines", pipeline_id, status="done", stage=None, skill_id=skill["id"], result=run.get("result"))
+        except (ValueError, NotFound, OSError) as exc:
+            log.exception("pipeline %s failed", pipeline_id)
+            self.store.update("pipelines", pipeline_id, status="failed", error=str(exc)[:500])
+
+    def approve_skill(self, skill_id: str) -> dict[str, Any]:
+        self.store.get("skills", skill_id)
+        return self.store.update("skills", skill_id, review_status="approved", reviewed_at=datetime.now(UTC).isoformat(timespec="seconds"))
+
     def compile_skill(self, run_id: str) -> dict[str, Any]:
         run = self.store.get("runs", run_id)
         report = self.report(run_id)
@@ -227,6 +292,7 @@ class PraxiProof:
             path=str(root),
             skill=skill.model_dump(mode="json"),
             verification_summary=report.counts(),
+            review_status="pending",
         )
 
     def _violation_keyframes(self, report: VerificationReport, evidence: dict[str, Evidence]) -> dict[str, bytes]:
@@ -273,8 +339,11 @@ class PraxiProof:
                     "kind": violation_kind(v),
                     "statement": v.statement,
                     "reason": v.reason,
+                    "reason_code": v.reason_code,
+                    "reason_params": v.reason_params,
                     "measured": v.measured,
                     "needed_evidence": v.needed_evidence,
+                    "needed_code": v.needed_code,
                     "review": v.review,
                     "constraint": v.constraint.signature(),
                     "manual": [{"citation": e.citation(), "text": e.text, "evidence_id": e.evidence_id} for e in manual],

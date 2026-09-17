@@ -90,7 +90,7 @@ def test_vlm_backend_runs_on_real_video(ollama, make_video):
     settings, client = ollama
     video = make_video(12)
     rs_events = [EventDef(label="fan_removed", description="A server fan module is pulled out of its bay")]
-    observation, evidence = LocalVLMBackend(client, settings.vlm_model).observe(video, "SPARK-VID", rs_events, "fan replacement")
+    observation, evidence = LocalVLMBackend(client, settings.vlm_model, thinking=settings.vlm_thinking).observe(video, "SPARK-VID", rs_events, "fan replacement")
     print("\nobserved:", [(e.label, e.start, e.end, e.confidence) for e in observation.events])
     assert observation.duration == pytest.approx(12, abs=0.5)
     assert len(evidence) == len(observation.events)

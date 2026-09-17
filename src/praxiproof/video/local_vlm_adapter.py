@@ -37,9 +37,11 @@ class LocalVLMBackend:
         max_refine_frames: int = 16,
         merge_gap: float = 6.0,
         frame_width: int = 640,
+        thinking: bool = False,
     ):
         self.llm = llm
         self.model = model
+        self.thinking = thinking
         self.window = window
         self.stride = stride
         self.frames_per_window = frames_per_window
@@ -55,7 +57,7 @@ class LocalVLMBackend:
         candidates = self._coarse(path, meta.duration, vocabulary, procedure)
         by_label = {e.label: e for e in vocabulary}
         segments = [self._refine(path, meta.duration, c, by_label[c.label], procedure) for c in candidates]
-        return normalize(segments, source_id, sha256_file(path), meta, self.name, self.model)
+        return normalize(segments, source_id, sha256_file(path), meta, self.name, self.model, approximate=True)
 
     def _windows(self, duration: float) -> list[tuple[float, float]]:
         windows, start = [], 0.0
@@ -111,6 +113,7 @@ class LocalVLMBackend:
                 ],
                 schema,
                 images=images,
+                think=None if self.thinking else False,
             )
             for item in result.get("events", []):
                 frame = int(item.get("frame", 0))
@@ -163,6 +166,7 @@ class LocalVLMBackend:
             ],
             schema,
             images=images,
+            think=None if self.thinking else False,
         )
         first, last = result.get("start_frame"), result.get("end_frame")
         if result.get("visible") and isinstance(first, int) and isinstance(last, int) and 1 <= first <= last <= len(times):

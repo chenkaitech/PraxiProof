@@ -53,27 +53,33 @@ const fmtTime = (s) => {
   return `${String(m).padStart(2, "0")}:${(s - m * 60).toFixed(1).padStart(4, "0")}`;
 };
 const fmtDuration = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const locale = () => (LANG === "zh" ? "zh-CN" : "en-US");
 const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+  iso ? new Date(iso).toLocaleString(locale(), { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
 const fmtBytes = (n) => (n == null ? "" : n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} KB`);
 const busy = (status) => status === "queued" || status === "processing";
 const matches = (row) => !state.query || JSON.stringify(row).toLowerCase().includes(state.query);
 
 function statusBadge(status) {
   const map = { PASS: "pass", VIOLATION: "violation", UNVERIFIED: "warn", INSUFFICIENT_EVIDENCE: "warn", done: "pass", ready: "pass", failed: "violation", queued: "neutral", processing: "info" };
-  const label = { INSUFFICIENT_EVIDENCE: "Insufficient evidence", UNVERIFIED: "Unverified" }[status] || status;
-  return `<span class="badge ${map[status] || "neutral"}">${esc(label)}</span>`;
+  return `<span class="badge ${map[status] || "neutral"}">${esc(t(`status.${status}`))}</span>`;
 }
 
+const reviewBadge = (skill) =>
+  skill.review_status === "approved" ? `<span class="badge pass">${esc(t("skill.review.approved"))}</span>` : `<span class="badge warn">${esc(t("skill.review.pending"))}</span>`;
+const severityBadge = (severity) => `<span class="badge ${esc(severity)}">${esc(t(`severity.${severity}`))}</span>`;
+const categoryBadge = (category) => `<span class="badge neutral">${esc(t(`category.${category}`))}</span>`;
+const stageLabel = (stage) => (STRINGS.en[`stage.${stage}`] ? t(`stage.${stage}`) : t("status.queued"));
+
 function resultBadge(run) {
-  if (busy(run.status)) return `<span class="badge info">${esc(run.stage || run.status)}…</span>`;
-  if (run.status === "failed") return `<span class="badge violation">Failed</span>`;
+  if (busy(run.status)) return `<span class="badge info">${esc(run.stage ? stageLabel(run.stage) : t(`status.${run.status}`))}…</span>`;
+  if (run.status === "failed") return `<span class="badge violation">${esc(t("result.failed"))}</span>`;
   const r = run.result;
   if (!r) return "—";
-  if (r === "PASS") return `<span class="badge pass">✓ PASS</span>`;
-  if (r === "Needs Evidence") return `<span class="badge warn">? Needs Evidence</span>`;
+  if (r === "PASS") return `<span class="badge pass">✓ ${esc(t("result.PASS"))}</span>`;
+  if (r === "Needs Evidence") return `<span class="badge warn">? ${esc(t("result.Needs Evidence"))}</span>`;
   const cls = r === "Missing Step" ? "warn" : "violation";
-  return `<span class="badge ${cls}">⚠ ${esc(r)}</span>`;
+  return `<span class="badge ${cls}">⚠ ${esc(t(`result.${r}`))}</span>`;
 }
 
 function ring(value, color) {
@@ -92,7 +98,7 @@ function schedulePoll(needed) {
 function dropzone(kind, accept, title) {
   return `<label class="dropzone" data-kind="${kind}">
     ${kind === "manual" ? ICON.pdf : ICON.play}
-    <div><strong>${title}</strong><span>or click to browse</span></div>
+    <div><strong>${esc(title)}</strong><span>${esc(t("common.or_browse"))}</span></div>
     <input type="file" accept="${accept}">
   </label>`;
 }
@@ -116,38 +122,38 @@ async function upload(kind, file) {
       const procedure = $("#procedure")?.value.trim();
       if (procedure) body.append("procedure", procedure);
       const record = await api("/api/manuals", { method: "POST", body });
-      toast(`${record.filename} uploaded — compiling requirements`);
+      toast(t("upload.manual_ok", { name: record.filename }));
     } else {
-      toast(`Uploading ${file.name}…`);
+      toast(t("upload.video_progress", { name: file.name }));
       const record = await api("/api/videos", { method: "POST", body });
-      toast(`${record.filename} uploaded`);
+      toast(t("upload.video_ok", { name: record.filename }));
     }
     render(true);
   } catch (err) {
-    toast(`Upload failed: ${err.message}`);
+    toast(t("upload.failed", { error: err.message }));
   }
 }
 
 function manualRow(m) {
-  if (!m) return `<p class="empty">No manual uploaded yet.</p>`;
+  if (!m) return `<p class="empty">${esc(t("dash.no_manual"))}</p>`;
   const icon = m.status === "ready" ? ICON.check : m.status === "failed" ? ICON.fail : ICON.spin;
-  const sub = m.status === "failed" ? `<span class="error-text">${esc(m.error)}</span>` : `${esc(m.procedure || m.procedure_hint || "Compiling…")} | ${m.page_count ? `${m.page_count} pages | ` : ""}${fmtDate(m.created_at)}`;
+  const sub = m.status === "failed" ? `<span class="error-text">${esc(m.error)}</span>` : `${esc(m.procedure || m.procedure_hint || t("dash.compiling"))} | ${m.page_count ? `${esc(t("common.pages", { n: m.page_count }))} | ` : ""}${fmtDate(m.created_at)}`;
   return `<a class="file-row" href="#manual/${esc(m.id)}" style="color:inherit">
     <span class="doc-icon">${ICON.doc}</span>
     <div class="grow"><div class="name">${esc(m.filename)}</div><div class="meta">${sub}</div></div>${icon}</a>`;
 }
 
 function videoRow(v) {
-  if (!v) return `<p class="empty">No video uploaded yet — you can also verify a demo observation.</p>`;
+  if (!v) return `<p class="empty">${esc(t("dash.no_video"))}</p>`;
   return `<a class="file-row" href="#videos" style="color:inherit">
     <img class="thumb" src="/api/videos/${esc(v.id)}/frame?t=${Math.min(2, v.meta.duration / 2).toFixed(1)}" alt="">
-    <div class="grow"><div class="name">${esc(v.filename)}</div><div class="meta">${v.meta.width} × ${v.meta.height} | ${fmtBytes(v.size_bytes)} | ${fmtDate(v.created_at)}</div></div>${ICON.check}</a>`;
+    <div class="grow"><div class="name">${esc(v.filename)}</div>${v.note ? `<div class="meta"><span class="badge warn">${esc(t("video.note"))}</span> ${esc(v.note)}</div>` : ""}<div class="meta">${v.meta.width} × ${v.meta.height} | ${fmtBytes(v.size_bytes)} | ${fmtDate(v.created_at)}</div></div>${ICON.check}</a>`;
 }
 
 function runsTable(runs, compact = false) {
   const rows = runs.filter(matches);
-  if (!rows.length) return `<p class="empty">No verification runs yet. Click “Start Verification”.</p>`;
-  return `<table><thead><tr><th>#</th><th>Video / Observation</th>${compact ? "" : "<th>Procedure</th>"}<th>Manual</th><th>Run Date</th><th>Result</th><th>Violations</th></tr></thead><tbody>
+  if (!rows.length) return `<p class="empty">${esc(t("runs.none"))}</p>`;
+  return `<table><thead><tr><th>#</th><th>${t("runs.col_video")}</th>${compact ? "" : `<th>${t("runs.col_procedure")}</th>`}<th>${t("runs.col_manual")}</th><th>${t("runs.col_date")}</th><th>${t("runs.col_result")}</th><th>${t("runs.col_violations")}</th></tr></thead><tbody>
     ${rows.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td>${esc(r.id)}</td><td>${esc(r.video_name)}</td>${compact ? "" : `<td>${esc(r.procedure)}</td>`}<td>${esc(r.manual_name)}</td><td>${fmtDate(r.created_at)}</td><td>${resultBadge(r)}</td><td>${r.violations ?? "—"}</td></tr>`).join("")}
   </tbody></table>`;
 }
@@ -163,13 +169,13 @@ function findingCard(f, compact = false) {
   const frame = video && f.video_id ? `<img src="/api/videos/${esc(f.video_id)}/frame?t=${video.start.toFixed(1)}" alt="" data-seek="${video.start}">` : "";
   return `<div class="finding ${violation ? "" : "unverified"}">
     <div class="finding-top"><div class="alert">${ICON.alert}</div>
-      <div style="flex:1"><h4>${esc(f.kind)}: ${esc(f.statement)}</h4><p>${esc(f.reason)}</p>
-      ${f.needed_evidence && !violation ? `<p class="muted">Needed: ${esc(f.needed_evidence)}</p>` : ""}</div>
-      <span class="badge ${esc(f.severity)}">${esc(f.severity)}</span>
+      <div style="flex:1"><h4>${esc(t(`result.${f.kind}`))}: ${esc(f.statement)}</h4><p>${esc(verdictText(f.reason_code, f.reason_params, f.reason))}</p>
+      ${f.needed_evidence && !violation ? `<p class="muted">${esc(t("finding.needed", { text: verdictText(f.needed_code, f.reason_params, f.needed_evidence) }))}</p>` : ""}</div>
+      ${severityBadge(f.severity)}
     </div>
     <div class="evidence-pair">
-      <div class="evidence-box"><div class="label">Reference</div><b>Manual ${esc(manual?.citation || "—")}</b>${manual ? `<q>${esc(manual.text.slice(0, compact ? 110 : 400))}</q>` : ""}</div>
-      <div class="evidence-box"><div class="label">Video Evidence</div><b>${video ? `${fmtTime(video.start)} – ${fmtTime(video.end)}` : "Not observed"}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "—" }))}</b>${manual ? `<q>${esc(manual.text.slice(0, compact ? 110 : 400))}</q>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t("finding.video"))}</div><b>${video ? `${fmtTime(video.start)} – ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
     </div>
   </div>`;
 }
@@ -179,7 +185,6 @@ async function renderDashboard() {
   const m = d.latest_manual, v = d.latest_video, metrics = d.metrics;
   const now = new Date();
   const activeRun = d.recent_runs.find((r) => busy(r.status));
-  const stages = ["Manual", "Requirement IR", "Alignment", "Verification", "Verified Skill"];
   const doneRun = d.latest_run;
   const stageState = (i) => {
     if (m && busy(m.status)) return i === 0 ? "done" : i === 1 ? "active" : "";
@@ -187,61 +192,57 @@ async function renderDashboard() {
     if (doneRun) return i < 4 || skills.some((s) => s.run_id === doneRun.id) ? "done" : "";
     return m?.status === "ready" && i < 2 ? "done" : "";
   };
-  const stageInfo = [
-    ["Extract procedures and safety rules", ICON.stageManual],
-    ["Convert to structured requirements", ICON.stageIR],
-    ["Match video to procedure steps", ICON.stageAlign],
-    ["Detect deviations with evidence", ICON.stageVerify],
-    ["Package as an Agent Skill", ICON.stageSkill],
-  ];
+  const stageIcons = [ICON.stageManual, ICON.stageIR, ICON.stageAlign, ICON.stageVerify, ICON.stageSkill];
   const metricCard = (title, metric, color, subtitle) => `<div class="card metric">${ring(metric?.value, color)}<div class="ring-label">${metric ? Math.round(metric.value * 100) + "%" : "—"}</div></div>
-    <div><h4>${title}</h4><p>${subtitle}</p></div></div>`;
+    <div><h4>${esc(title)}</h4><p>${esc(subtitle)}</p></div></div>`;
   const violations = metrics?.violations ?? 0;
 
   view.innerHTML = `
     <div class="page-head">
-      <div><h1>Operational Verification Dashboard</h1><p>Compare standards with reality.</p></div>
+      <div><h1>${t("dash.title")}</h1><p>${t("dash.subtitle")}</p></div>
       <div class="spacer"></div>
-      <div class="date">${ICON.cal}<div>${now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}<small>${now.toLocaleDateString("en-US", { weekday: "long" })}, ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</small></div></div>
-      <button class="btn primary big" id="start">Start Verification →</button>
+      <div class="date">${ICON.cal}<div>${now.toLocaleDateString(locale(), { month: "long", day: "numeric", year: "numeric" })}<small>${now.toLocaleDateString(locale(), { weekday: "long" })}, ${now.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })}</small></div></div>
+      <button class="btn ghost big" id="pipeline">${t("pipe.button")}</button>
+      <button class="btn primary big" id="start">${t("common.start")}</button>
     </div>
 
     <div class="grid-2">
       <section class="card upload-card manual">
-        <div class="card-head"><div class="icon-chip blue">${ICON.doc}</div><div><h3>Official Procedure Manual</h3><p>Upload a PDF, HTML or Markdown procedure manual</p></div></div>
-        ${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", "Drag and drop a manual here")}
-        <label class="procedure-input">Procedure to compile <input id="procedure" placeholder="e.g. Front Fan Module Replacement (needed for long manuals)"></label>
+        <div class="card-head"><div class="icon-chip blue">${ICON.doc}</div><div><h3>${t("dash.manual_title")}</h3><p>${t("dash.manual_sub")}</p></div></div>
+        ${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
+        <label class="procedure-input">${t("dash.procedure")} <input id="procedure" placeholder="${esc(t("dash.procedure_ph"))}"></label>
         ${manualRow(m)}
-        <div class="stats"><div>${ICON.list}<div><b>${m?.counts?.safety_rules ?? "—"}</b><small>safety rules</small></div></div><div>${ICON.doc}<div><b>${m?.counts?.rules ?? "—"}</b><small>rules · ${m?.counts?.steps ?? "—"} steps</small></div></div></div>
+        <div class="stats"><div>${ICON.list}<div><b>${m?.counts?.safety_rules ?? "—"}</b><small>${t("dash.safety_rules")}</small></div></div><div>${ICON.doc}<div><b>${m?.counts?.rules ?? "—"}</b><small>${esc(t("dash.rules_steps", { steps: m?.counts?.steps ?? "—" }))}</small></div></div></div>
       </section>
       <section class="card upload-card video">
-        <div class="card-head"><div class="icon-chip green"><svg viewBox="0 0 24 24"><path d="M9 7l8 5-8 5z" fill="#fff"/></svg></div><div><h3>Operation Video</h3><p>Upload an operation video</p></div></div>
-        ${dropzone("video", "video/*", "Drag and drop a video file here")}
+        <div class="card-head"><div class="icon-chip green"><svg viewBox="0 0 24 24"><path d="M9 7l8 5-8 5z" fill="#fff"/></svg></div><div><h3>${t("dash.video_title")}</h3><p>${t("dash.video_sub")}</p></div></div>
+        ${dropzone("video", "video/*", t("dash.video_drop"))}
         ${videoRow(v)}
-        <div class="stats"><div>${ICON.clock}<div><b>${v ? fmtDuration(v.meta.duration) : "—"}</b><small>duration</small></div></div><div>${ICON.cam}<div><b>${v ? esc(v.meta.format_name.toUpperCase()) : "—"}</b><small>format</small></div></div><div>${ICON.screen}<div><b>${v ? `${v.meta.height}p` : "—"}</b><small>resolution</small></div></div></div>
+        <div class="stats"><div>${ICON.clock}<div><b>${v ? fmtDuration(v.meta.duration) : "—"}</b><small>${t("dash.duration")}</small></div></div><div>${ICON.cam}<div><b>${v ? esc(v.meta.format_name.toUpperCase()) : "—"}</b><small>${t("dash.format")}</small></div></div><div>${ICON.screen}<div><b>${v ? `${v.meta.height}p` : "—"}</b><small>${t("dash.resolution")}</small></div></div></div>
       </section>
     </div>
 
     <section class="card pipeline">
-      ${stages.map((s, i) => `<div class="stage ${stageState(i)}"><div class="bubble">${stageInfo[i][1]}</div><div><b>${s}</b><small>${stageInfo[i][0]}</small></div></div>${i < 4 ? ICON.arrow : ""}`).join("")}
+      ${stageIcons.map((icon, i) => `<div class="stage ${stageState(i)}"><div class="bubble">${icon}</div><div><b>${t(`stage.${i}`)}</b><small>${t(`stage.${i}.sub`)}</small></div></div>${i < 4 ? ICON.arrow : ""}`).join("")}
     </section>
 
     <div class="grid-4">
-      ${metricCard("Evidence Traceability", metrics?.evidence_traceability, "#1a6cf0", metrics ? `${metrics.evidence_traceability.numerator} / ${metrics.evidence_traceability.denominator} verdicts fully cited` : "Run a verification to see results")}
-      ${metricCard("Safety Coverage", metrics?.safety_coverage, "#12a150", metrics ? `${metrics.safety_coverage.numerator} / ${metrics.safety_coverage.denominator} safety rules decided from video` : "")}
-      ${metricCard("Step Coverage", metrics?.step_coverage, "#1a6cf0", metrics ? `${metrics.step_coverage.numerator} / ${metrics.step_coverage.denominator} procedure steps observed` : "")}
+      ${metricCard(t("metric.trace"), metrics?.evidence_traceability, "#1a6cf0", metrics ? t("metric.trace_sub", { n: metrics.evidence_traceability.numerator, d: metrics.evidence_traceability.denominator }) : t("metric.empty"))}
+      ${metricCard(t("metric.safety"), metrics?.safety_coverage, "#12a150", metrics ? t("metric.safety_sub", { n: metrics.safety_coverage.numerator, d: metrics.safety_coverage.denominator }) : "")}
+      ${metricCard(t("metric.steps"), metrics?.step_coverage, "#1a6cf0", metrics ? t("metric.steps_sub", { n: metrics.step_coverage.numerator, d: metrics.step_coverage.denominator }) : "")}
       <div class="card metric">${ring(metrics ? Math.min(violations / Math.max(metrics.counts ? Object.values(metrics.counts).reduce((a, b) => a + b, 0) : 1, 1), 1) : 0, "#e5484d")}<div class="ring-label" style="color:#e5484d">${metrics ? violations : "—"}</div></div>
-        <div><h4>Violations Found</h4><p>${metrics ? `${violations} issue${violations === 1 ? " requires" : "s require"} review` : ""}</p></div></div>
+        <div><h4>${t("metric.violations")}</h4><p>${metrics ? esc(violations === 1 ? t("metric.violations_one") : t("metric.violations_many", { n: violations })) : ""}</p></div></div>
     </div>
 
     <div class="split" style="margin-top:20px">
-      <section class="card"><div class="card-head"><h3>Recent Verification Runs</h3><div class="spacer"></div><a href="#runs">View all runs →</a></div>${runsTable(d.recent_runs.slice(0, 6), true)}</section>
-      <section class="card"><div class="card-head"><h3>Latest Findings</h3><div class="spacer"></div>${doneRun ? `<a href="#run/${esc(doneRun.id)}">View all findings →</a>` : ""}</div>
-        ${d.findings.length ? d.findings.slice(0, 2).map((f) => findingCard(f, true)).join('<div style="height:10px"></div>') : `<p class="empty">${doneRun ? "No open findings in the latest run." : "Findings appear here after a verification run."}</p>`}
+      <section class="card"><div class="card-head"><h3>${t("dash.recent")}</h3><div class="spacer"></div><a href="#runs">${t("dash.view_runs")}</a></div>${runsTable(d.recent_runs.slice(0, 6), true)}</section>
+      <section class="card"><div class="card-head"><h3>${t("dash.findings")}</h3><div class="spacer"></div>${doneRun ? `<a href="#run/${esc(doneRun.id)}">${t("dash.view_findings")}</a>` : ""}</div>
+        ${d.findings.length ? d.findings.slice(0, 2).map((f) => findingCard(f, true)).join('<div style="height:10px"></div>') : `<p class="empty">${doneRun ? t("dash.no_findings") : t("dash.findings_empty")}</p>`}
       </section>
     </div>`;
 
   $("#start").addEventListener("click", () => openRunDialog());
+  $("#pipeline").addEventListener("click", () => openPipelineDialog());
   bindDropzones(view);
   bindRowLinks(view);
   schedulePoll((m && busy(m.status)) || !!activeRun);
@@ -252,10 +253,10 @@ async function openRunDialog(preset = {}) {
   const form = $("#run-form");
   const [manuals, videos, demos] = await Promise.all([api("/api/manuals"), api("/api/videos"), api("/api/demo/observations")]);
   const ready = manuals.filter((m) => m.status === "ready");
-  if (!ready.length) return toast("Upload a manual and wait for its requirements to compile first.");
+  if (!ready.length) return toast(t("dialog.need_manual"));
   form.manual_id.innerHTML = ready.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} — ${esc(m.procedure)} (${esc(m.filename)})</option>`).join("");
-  form.video_id.innerHTML = videos.map((v) => `<option value="${esc(v.id)}">${esc(v.filename)} (${fmtDuration(v.meta.duration)})</option>`).join("") || "<option value=''>No videos uploaded</option>";
-  form.demo_observation.innerHTML = demos.map((o) => `<option value="${esc(o.name)}">${esc(o.title)}</option>`).join("");
+  form.video_id.innerHTML = videos.map((v) => `<option value="${esc(v.id)}">${esc(v.filename)} (${fmtDuration(v.meta.duration)})</option>`).join("") || `<option value="">${esc(t("dialog.no_videos"))}</option>`;
+  form.demo_observation.innerHTML = demos.map((o) => `<option value="${esc(o.name)}">${esc(LANG === "zh" && o.title_zh ? o.title_zh : o.title)}</option>`).join("");
   form.source.value = preset.video_id || videos.length ? "video" : "demo";
   if (preset.video_id) form.video_id.value = preset.video_id;
   $("#run-error").textContent = "";
@@ -265,7 +266,7 @@ async function openRunDialog(preset = {}) {
     event.preventDefault();
     const body = { manual_id: form.manual_id.value };
     if (form.source.value === "video") {
-      if (!form.video_id.value) return ($("#run-error").textContent = "Upload a video or choose a demo observation.");
+      if (!form.video_id.value) return ($("#run-error").textContent = t("dialog.need_video"));
       body.video_id = form.video_id.value;
     } else body.demo_observation = form.demo_observation.value;
     try {
@@ -278,9 +279,90 @@ async function openRunDialog(preset = {}) {
   };
 }
 
+async function openPipelineDialog() {
+  const dialog = $("#pipeline-dialog");
+  const form = $("#pipeline-form");
+  const [manuals, videos, demos] = await Promise.all([api("/api/manuals"), api("/api/videos"), api("/api/demo/observations")]);
+  const usable = manuals.filter((m) => m.status !== "failed");
+  form.manual_id.innerHTML = usable.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} — ${esc(m.procedure || m.procedure_hint || m.filename)} (${esc(m.filename)})</option>`).join("");
+  form.video_id.innerHTML = videos.map((v) => `<option value="${esc(v.id)}">${esc(v.filename)} (${fmtDuration(v.meta.duration)})</option>`).join("") || `<option value="">${esc(t("dialog.no_videos"))}</option>`;
+  form.demo_observation.innerHTML = demos.map((o) => `<option value="${esc(o.name)}">${esc(LANG === "zh" && o.title_zh ? o.title_zh : o.title)}</option>`).join("");
+  form.manual_source.value = usable.length ? "existing" : "upload";
+  form.video_source.value = "upload";
+  form.manual.value = "";
+  form.video.value = "";
+  form.video_note.value = "";
+  $("#pipeline-error").textContent = "";
+  dialog.showModal();
+  form.onsubmit = async (event) => {
+    if (event.submitter?.value !== "ok") return;
+    event.preventDefault();
+    const error = (key) => ($("#pipeline-error").textContent = t(key));
+    const body = new FormData();
+    if (form.manual_source.value === "upload") {
+      if (!form.manual.files[0]) return error("pipe.need_manual_file");
+      body.append("manual", form.manual.files[0]);
+      if (form.procedure.value.trim()) body.append("procedure", form.procedure.value.trim());
+    } else {
+      if (!form.manual_id.value) return error("pipe.need_manual");
+      body.append("manual_id", form.manual_id.value);
+    }
+    if (form.video_source.value === "upload") {
+      if (!form.video.files[0]) return error("pipe.need_video_file");
+      body.append("video", form.video.files[0]);
+      if (form.video_note.value.trim()) body.append("video_note", form.video_note.value.trim());
+    } else if (form.video_source.value === "existing") {
+      if (!form.video_id.value) return error("pipe.need_video");
+      body.append("video_id", form.video_id.value);
+    } else {
+      body.append("demo_observation", form.demo_observation.value);
+    }
+    const submit = form.querySelector('button[value="ok"]');
+    submit.disabled = true;
+    $("#pipeline-error").textContent = t("pipe.uploading");
+    try {
+      const pipeline = await api("/api/pipelines", { method: "POST", body });
+      dialog.close();
+      location.hash = `#pipeline/${pipeline.id}`;
+    } catch (err) {
+      $("#pipeline-error").textContent = err.message;
+    } finally {
+      submit.disabled = false;
+    }
+  };
+}
+
+async function renderPipeline(id) {
+  const p = await api(`/api/pipelines/${encodeURIComponent(id)}`);
+  const failed = p.status === "failed";
+  const order = ["compiling", "verifying", "packaging"];
+  const current = p.status === "done" ? 3 : order.indexOf(p.stage);
+  const state = (i) => (p.status === "done" || i < current ? "done" : i === current ? (failed ? "failed" : "active") : "");
+  const detail = [
+    p.manual.status === "ready"
+      ? `${esc(p.manual.procedure || "")} · ${p.manual.counts?.rules ?? "—"} ${esc(t("dash.rules_steps", { steps: p.manual.counts?.steps ?? "—" }))}`
+      : esc(t(`status.${p.manual.status}`)),
+    p.run ? (p.run.status === "done" ? resultBadge(p.run) : esc(p.run.stage ? stageLabel(p.run.stage) : t(`status.${p.run.status}`))) : "",
+    p.skill_id ? `<span class="badge warn">${esc(t("skill.review.pending"))}</span>` : "",
+    p.status === "done" ? esc(t("pipe.review_hint")) : "",
+  ];
+  const steps = ["pipe.step.compile", "pipe.step.verify", "pipe.step.package", "pipe.step.review"];
+  view.innerHTML = `<div class="page-head"><div><h1>${esc(t("pipe.title", { id: p.id }))}</h1><p>${esc(p.manual_name)} + ${esc(p.video_name)}</p></div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>
+    <section class="card">
+      ${failed ? `<p class="error-text">${esc(t("pipe.failed", { error: p.error }))}</p>` : busy(p.status) ? `<p class="muted">${ICON.spin} ${esc(t("pipe.working"))}</p>` : ""}
+      <div class="steps">${steps.map((key, i) => `<div class="step ${state(i)}"><div class="num">${state(i) === "done" ? "✓" : i + 1}</div><div class="grow"><b>${t(key)}</b><small>${detail[i]}</small></div></div>`).join("")}</div>
+      <div class="page-actions">
+        <a class="btn ghost" href="#manual/${esc(p.manual_id)}">${t("pipe.open_manual")}</a>
+        ${p.run_id ? `<a class="btn ghost" href="#run/${esc(p.run_id)}">${t("pipe.open_run")}</a>` : ""}
+        ${p.skill_id ? `<a class="btn primary" href="#skill/${esc(p.skill_id)}">${t("pipe.open_skill")}</a>` : ""}
+      </div>
+    </section>`;
+  schedulePoll(busy(p.status));
+}
+
 async function renderRuns() {
   const runs = await api("/api/runs");
-  view.innerHTML = `<div class="page-head"><div><h1>Verification Runs</h1><p>Every comparison between a manual and an operation.</p></div><div class="spacer"></div><button class="btn primary" id="start">Start Verification →</button></div>
+  view.innerHTML = `<div class="page-head"><div><h1>${t("runs.title")}</h1><p>${t("runs.subtitle")}</p></div><div class="spacer"></div><button class="btn primary" id="start">${t("common.start")}</button></div>
     <section class="card">${runsTable(runs)}</section>`;
   $("#start").addEventListener("click", () => openRunDialog());
   bindRowLinks(view);
@@ -293,17 +375,17 @@ function evidenceLine(ids, evidence, videoId) {
     .filter(Boolean)
     .map((e) =>
       e.source_type === "document"
-        ? `<div class="evidence-box"><div class="label">Manual ${esc(e.citation)}${e.locator.section ? ` · ${esc(e.locator.section)}` : ""}</div><q>${esc(e.text)}</q></div>`
-        : `<div class="evidence-box"><div class="label">Video ${esc(e.citation)} · confidence ${Math.round(e.confidence * 100)}%</div>${esc(e.text)}${videoId ? `<img src="/api/videos/${esc(videoId)}/frame?t=${e.locator.start.toFixed(1)}" alt="" data-seek="${e.locator.start}">` : ""}</div>`
+        ? `<div class="evidence-box"><div class="label">${esc(t("ev.manual", { cite: e.citation }))}${e.locator.section && e.locator.section !== e.citation ? ` · ${esc(e.locator.section)}` : ""}</div><q>${esc(e.text)}</q></div>`
+        : `<div class="evidence-box"><div class="label">${esc(t("ev.video", { cite: e.citation, pct: Math.round(e.confidence * 100) }))}</div>${esc(e.text)}${videoId ? `<img src="/api/videos/${esc(videoId)}/frame?t=${e.locator.start.toFixed(1)}" alt="" data-seek="${e.locator.start}">` : ""}</div>`
     )
     .join("");
 }
 
 async function renderRun(id) {
   const [run, skills] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api("/api/skills")]);
-  const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} — ${esc(run.manual_name)}</p></div><div class="spacer"></div><a class="btn ghost" href="#runs">← All runs</a></div>`;
+  const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} — ${esc(run.manual_name)}</p>${run.video_note ? `<p><span class="badge warn">${esc(t("video.note"))}</span> ${esc(run.video_note)}</p>` : ""}</div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>`;
   if (busy(run.status) || run.status === "failed") {
-    view.innerHTML = `${head}<section class="card">${run.status === "failed" ? `<p class="error-text">Run failed: ${esc(run.error)}</p>` : `<p>${ICON.spin} ${esc(run.stage || "queued")}… Video analysis with the local VLM can take several minutes.</p>`}</section>`;
+    view.innerHTML = `${head}<section class="card">${run.status === "failed" ? `<p class="error-text">${esc(t("run.failed", { error: run.error }))}</p>` : `<p>${ICON.spin} ${esc(t("run.working", { stage: stageLabel(run.stage) }))}</p>`}</section>`;
     return schedulePoll(busy(run.status));
   }
   const report = run.report;
@@ -312,34 +394,34 @@ async function renderRun(id) {
   const verdicts = [...report.verdicts].sort((a, b) => order[a.status] - order[b.status] || a.rule_id.localeCompare(b.rule_id));
   view.innerHTML = `${head}
     <section class="card run-head">${resultBadge(run)}<div class="counts">${Object.entries(run.counts).map(([k, n]) => `${statusBadge(k)} <b>${n}</b>`).join(" &nbsp; ")}</div><div class="spacer" style="flex:1"></div>
-      ${skill ? `<a class="btn ghost" href="#skill/${esc(skill.id)}">View Skill ${esc(skill.id)}</a>` : ""}
-      <button class="btn primary" id="compile">${skill ? "Recompile Skill" : "Compile Verified Skill"}</button></section>
+      ${skill ? `<a class="btn ghost" href="#skill/${esc(skill.id)}">${esc(t("run.view_skill", { id: skill.id }))}</a>` : ""}
+      <button class="btn primary" id="compile">${skill ? t("run.recompile_skill") : t("run.compile_skill")}</button></section>
     <div class="split" style="margin-top:20px">
       <div class="stack">
-        <section class="card"><div class="card-head"><h3>Verdicts</h3><p>Each rule compiled from the manual, checked deterministically against observed events.</p></div>
+        <section class="card"><div class="card-head"><h3>${t("run.verdicts")}</h3><p>${t("run.verdicts_sub")}</p></div>
           <div class="verdicts">${verdicts.map((v) => `
             <div class="verdict ${v.status}">
-              <div class="verdict-head"><span class="title">${esc(v.rule_id)} · ${esc(v.statement)}</span>${statusBadge(v.status)}<span class="badge ${esc(v.severity)}">${esc(v.severity)}</span><span class="badge neutral">${esc(v.category)}</span></div>
-              <p class="reason"><code>${esc(signature(v.constraint))}</code> ${esc(v.reason)}</p>
-              ${v.needed_evidence ? `<p class="needed">Needed evidence: ${esc(v.needed_evidence)}</p>` : ""}
+              <div class="verdict-head"><span class="title">${esc(v.rule_id)} · ${esc(v.statement)}</span>${statusBadge(v.status)}${severityBadge(v.severity)}${categoryBadge(v.category)}</div>
+              <p class="reason"><code>${esc(signature(v.constraint))}</code> ${esc(verdictText(v.reason_code, v.reason_params, v.reason))}</p>
+              ${v.needed_evidence ? `<p class="needed">${esc(t("run.needed", { text: verdictText(v.needed_code, v.reason_params, v.needed_evidence) }))}</p>` : ""}
               <div class="evidence-pair">${evidenceLine(v.requirement_evidence_ids, run.evidence, run.video_id)}${evidenceLine(v.observation_evidence_ids, run.evidence, run.video_id)}</div>
-              ${v.status !== "PASS" ? `<div class="verdict-actions"><span class="muted">Review:</span>
-                <button class="btn small ${v.review === "accepted" ? "success" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="accepted">Confirm finding</button>
-                <button class="btn small ${v.review === "rejected" ? "danger" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="rejected">Reject finding</button></div>` : ""}
+              ${v.status !== "PASS" ? `<div class="verdict-actions"><span class="muted">${t("run.review")}</span>
+                <button class="btn small ${v.review === "accepted" ? "success" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="accepted">${t("run.confirm")}</button>
+                <button class="btn small ${v.review === "rejected" ? "danger" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="rejected">${t("run.reject")}</button></div>` : ""}
             </div>`).join("")}</div>
         </section>
-        <section class="card"><div class="card-head"><h3>Observation alignment</h3><p>How observed events were matched to the manual's step vocabulary.</p></div>
-          <table><thead><tr><th>Event</th><th>Observed label</th><th>Matched step</th><th>Method</th><th>Time</th></tr></thead><tbody>
-          ${report.alignment.map((a) => { const e = run.observation.events.find((x) => x.event_id === a.event_id) || {}; return `<tr><td>${esc(a.event_id)}</td><td>${esc(a.observed_label)}</td><td>${esc(a.aligned_labels.join(", ") || "—")}</td><td>${esc(a.method)}</td><td>${fmtTime(e.start)}–${fmtTime(e.end)}</td></tr>`; }).join("")}
+        <section class="card"><div class="card-head"><h3>${t("run.alignment")}</h3><p>${t("run.alignment_sub")}</p></div>
+          <table><thead><tr><th>${t("run.col_event")}</th><th>${t("run.col_observed")}</th><th>${t("run.col_matched")}</th><th>${t("run.col_method")}</th><th>${t("run.col_time")}</th></tr></thead><tbody>
+          ${report.alignment.map((a) => { const e = run.observation.events.find((x) => x.event_id === a.event_id) || {}; return `<tr><td>${esc(a.event_id)}</td><td>${esc(a.observed_label)}</td><td>${esc(a.aligned_labels.join(", ") || "—")}</td><td>${esc(t(`method.${a.method}`))}</td><td>${fmtTime(e.start)}–${fmtTime(e.end)}</td></tr>`; }).join("")}
           </tbody></table>
-          ${run.traceability_issues?.length ? `<p class="error-text">Traceability issues: ${run.traceability_issues.map(esc).join("; ")}</p>` : ""}
+          ${run.traceability_issues?.length ? `<p class="error-text">${esc(t("run.trace_issues", { issues: run.traceability_issues.join("; ") }))}</p>` : ""}
         </section>
       </div>
       <div class="stack">
-        ${run.video_id ? `<section class="card"><div class="card-head"><h3>Operation video</h3></div><video id="player" controls preload="metadata" src="/api/videos/${esc(run.video_id)}/file"></video></section>` : ""}
-        <section class="card"><div class="card-head"><h3>Ask the Compliance Agent</h3></div>
-          <div class="chat"><textarea id="question" placeholder="e.g. Did the technician respect the 30-second fan replacement limit? Cite the manual."></textarea>
-          <button class="btn primary" id="ask">Ask</button><div id="answer"></div></div>
+        ${run.video_id ? `<section class="card"><div class="card-head"><h3>${t("run.video")}</h3></div><video id="player" controls preload="metadata" src="/api/videos/${esc(run.video_id)}/file"></video></section>` : ""}
+        <section class="card"><div class="card-head"><h3>${t("run.agent")}</h3></div>
+          <div class="chat"><textarea id="question" placeholder="${esc(t("run.agent_ph"))}"></textarea>
+          <button class="btn primary" id="ask">${t("run.ask")}</button><div id="answer"></div></div>
         </section>
       </div>
     </div>`;
@@ -356,7 +438,7 @@ async function renderRun(id) {
     e.target.disabled = true;
     try {
       const s = await api(`/api/runs/${encodeURIComponent(run.id)}/skill`, { method: "POST" });
-      toast(`Skill ${s.name} compiled`);
+      toast(t("run.skill_ok", { name: s.name }));
       location.hash = `#skill/${s.id}`;
     } catch (err) {
       toast(err.message);
@@ -367,10 +449,10 @@ async function renderRun(id) {
     const question = $("#question").value.trim();
     if (!question) return;
     e.target.disabled = true;
-    $("#answer").innerHTML = `<p>${ICON.spin} Thinking…</p>`;
+    $("#answer").innerHTML = `<p>${ICON.spin} ${esc(t("common.thinking"))}</p>`;
     try {
-      const r = await api("/api/agent/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, run_id: run.id }) });
-      $("#answer").innerHTML = `<div class="answer">${esc(r.answer)}</div><p class="muted">Tools used: ${r.tool_calls.map((t) => esc(t.tool)).join(", ") || "none"}</p>`;
+      const r = await api("/api/agent/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, run_id: run.id, language: LANG }) });
+      $("#answer").innerHTML = `<div class="answer">${esc(r.answer)}</div><p class="muted">${esc(t("run.tools", { tools: r.tool_calls.map((c) => c.tool).join(", ") || t("common.none") }))}</p>`;
     } catch (err) {
       $("#answer").innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
     }
@@ -400,12 +482,12 @@ function signature(c) {
 
 async function renderManuals() {
   const manuals = (await api("/api/manuals")).filter(matches);
-  view.innerHTML = `<div class="page-head"><div><h1>Manuals</h1><p>Official procedures compiled into executable rules.</p></div></div>
-    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card manual">${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", "Drag and drop a manual here")}
-      <label class="procedure-input">Procedure to compile <input id="procedure" placeholder="e.g. Front Fan Module Replacement"></label></section></div>
-    <section class="card">${manuals.length ? `<table><thead><tr><th>ID</th><th>File</th><th>Procedure</th><th>Status</th><th>Rules</th><th>Safety</th><th>Steps</th><th>Uploaded</th></tr></thead><tbody>
+  view.innerHTML = `<div class="page-head"><div><h1>${t("manuals.title")}</h1><p>${t("manuals.subtitle")}</p></div></div>
+    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card manual">${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
+      <label class="procedure-input">${t("dash.procedure")} <input id="procedure" placeholder="${esc(t("manuals.procedure_ph"))}"></label></section></div>
+    <section class="card">${manuals.length ? `<table><thead><tr><th>ID</th><th>${t("manuals.col_file")}</th><th>${t("manuals.col_procedure")}</th><th>${t("manuals.col_status")}</th><th>${t("manuals.col_rules")}</th><th>${t("manuals.col_safety")}</th><th>${t("manuals.col_steps")}</th><th>${t("manuals.col_uploaded")}</th></tr></thead><tbody>
       ${manuals.map((m) => `<tr class="clickable" data-href="#manual/${esc(m.id)}"><td>${esc(m.id)}</td><td>${esc(m.filename)}</td><td>${esc(m.procedure || m.procedure_hint || "")}</td><td>${statusBadge(m.status)}</td><td>${m.counts?.rules ?? "—"}</td><td>${m.counts?.safety_rules ?? "—"}</td><td>${m.counts?.steps ?? "—"}</td><td>${fmtDate(m.created_at)}</td></tr>`).join("")}
-    </tbody></table>` : `<p class="empty">No manuals yet.</p>`}</section>`;
+    </tbody></table>` : `<p class="empty">${t("manuals.none")}</p>`}</section>`;
   bindDropzones(view);
   bindRowLinks(view);
   schedulePoll(manuals.some((m) => busy(m.status)));
@@ -414,18 +496,18 @@ async function renderManuals() {
 async function renderManual(id) {
   const m = await api(`/api/manuals/${encodeURIComponent(id)}`);
   const rs = m.requirement_set;
-  view.innerHTML = `<div class="page-head"><div><h1>${esc(m.procedure || m.filename)}</h1><p>${esc(m.id)} · ${esc(m.filename)} · ${esc(m.extractor || "")}${m.page_count ? ` · ${m.page_count} pages` : ""}</p></div><div class="spacer"></div>
-      ${statusBadge(m.status)}<button class="btn ghost" id="recompile">Recompile</button><a class="btn ghost" href="#manuals">← Manuals</a></div>
+  view.innerHTML = `<div class="page-head"><div><h1>${esc(m.procedure || m.filename)}</h1><p>${esc(m.id)} · ${esc(m.filename)} · ${esc(m.extractor || "")}${m.page_count ? ` · ${esc(t("common.pages", { n: m.page_count }))}` : ""}</p></div><div class="spacer"></div>
+      ${statusBadge(m.status)}<button class="btn ghost" id="recompile">${t("manual.recompile")}</button><a class="btn ghost" href="#manuals">${t("manual.back")}</a></div>
     ${m.status === "failed" ? `<section class="card"><p class="error-text">${esc(m.error)}</p></section>` : ""}
-    ${busy(m.status) ? `<section class="card"><p>${ICON.spin} Extracting text and compiling rules with ${esc(m.procedure_hint ? `focus on “${m.procedure_hint}”` : "the LLM")}…</p></section>` : ""}
-    ${rs ? `<section class="card"><div class="card-head"><h3>Compiled rules</h3><p>Natural-language SOP → executable constraints, each tied to its manual source.</p></div>
-      <table><thead><tr><th>Rule</th><th>Constraint</th><th>Category</th><th>Severity</th><th>On camera</th><th>Source</th></tr></thead><tbody>
-      ${rs.requirements.map((r) => `<tr><td><b>${esc(r.rule_id)}</b><br>${esc(r.statement)}</td><td><code>${esc(signature(r.constraint))}</code></td><td>${esc(r.category)}</td><td><span class="badge ${esc(r.severity)}">${esc(r.severity)}</span></td><td>${r.observable ? "yes" : "no"}</td>
+    ${busy(m.status) ? `<section class="card"><p>${ICON.spin} ${esc(m.procedure_hint ? t("manual.working_focus", { hint: m.procedure_hint }) : t("manual.working"))}</p></section>` : ""}
+    ${rs ? `<section class="card"><div class="card-head"><h3>${t("manual.rules")}</h3><p>${t("manual.rules_sub")}</p></div>
+      <table><thead><tr><th>${t("manual.col_rule")}</th><th>${t("manual.col_constraint")}</th><th>${t("manual.col_category")}</th><th>${t("manual.col_severity")}</th><th>${t("manual.col_camera")}</th><th>${t("manual.col_source")}</th></tr></thead><tbody>
+      ${rs.requirements.map((r) => `<tr><td><b>${esc(r.rule_id)}</b><br>${esc(r.statement)}</td><td><code>${esc(signature(r.constraint))}</code></td><td>${esc(t(`category.${r.category}`))}</td><td>${severityBadge(r.severity)}</td><td>${r.observable ? t("common.yes") : t("common.no")}</td>
         <td>${r.evidence_ids.map((e) => m.evidence[e]).filter(Boolean).map((e) => `<b>${esc(e.citation)}</b> <q class="muted">${esc(e.text.slice(0, 160))}</q>`).join("<br>")}</td></tr>`).join("")}
       </tbody></table></section>
-      <section class="card" style="margin-top:20px"><div class="card-head"><h3>Step vocabulary</h3><p>Events the video observer is asked to find.</p></div>
+      <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("manual.vocab")}</h3><p>${t("manual.vocab_sub")}</p></div>
         <table><tbody>${rs.events.map((e) => `<tr><td><code>${esc(e.label)}</code></td><td>${esc(e.description)}</td></tr>`).join("")}</tbody></table></section>
-      ${m.rejected?.length ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>Rejected by validation</h3><p>Model output that failed the DSL or citation checks and was not used.</p></div>
+      ${m.rejected?.length ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("manual.rejected")}</h3><p>${t("manual.rejected_sub")}</p></div>
         <table><tbody>${m.rejected.map((r) => `<tr><td class="error-text">${esc(r.error)}</td><td><code>${esc(JSON.stringify(r.item).slice(0, 240))}</code></td></tr>`).join("")}</tbody></table></section>` : ""}` : ""}`;
   $("#recompile").addEventListener("click", async () => { await api(`/api/manuals/${encodeURIComponent(id)}/recompile`, { method: "POST" }); render(true); });
   schedulePoll(busy(m.status));
@@ -433,56 +515,112 @@ async function renderManual(id) {
 
 async function renderVideos() {
   const videos = (await api("/api/videos")).filter(matches);
-  view.innerHTML = `<div class="page-head"><div><h1>Videos</h1><p>Operation recordings to verify.</p></div></div>
-    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card video">${dropzone("video", "video/*", "Drag and drop a video file here")}</section></div>
+  view.innerHTML = `<div class="page-head"><div><h1>${t("videos.title")}</h1><p>${t("videos.subtitle")}</p></div></div>
+    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card video">${dropzone("video", "video/*", t("dash.video_drop"))}</section></div>
     <div class="grid-4">${videos.map((v) => `<section class="card"><img class="thumb" style="width:100%;height:150px" src="/api/videos/${esc(v.id)}/frame?t=${Math.min(2, v.meta.duration / 2).toFixed(1)}" alt="">
-      <p style="margin:10px 0 2px"><b>${esc(v.filename)}</b></p><p class="muted" style="margin:0">${esc(v.id)} · ${fmtDuration(v.meta.duration)} · ${v.meta.width}×${v.meta.height} · ${fmtBytes(v.size_bytes)}</p>
-      <button class="btn primary small" style="margin-top:10px" data-verify="${esc(v.id)}">Verify →</button></section>`).join("") || `<p class="empty">No videos yet.</p>`}</div>`;
+      <p style="margin:10px 0 2px"><b>${esc(v.filename)}</b></p>${v.note ? `<p style="margin:0 0 4px"><span class="badge warn">${esc(t("video.note"))}</span> ${esc(v.note)}</p>` : ""}<p class="muted" style="margin:0">${esc(v.id)} · ${fmtDuration(v.meta.duration)} · ${v.meta.width}×${v.meta.height} · ${fmtBytes(v.size_bytes)}</p>
+      <button class="btn primary small" style="margin-top:10px" data-verify="${esc(v.id)}">${t("videos.verify")}</button></section>`).join("") || `<p class="empty">${t("videos.none")}</p>`}</div>`;
   bindDropzones(view);
   view.querySelectorAll("[data-verify]").forEach((b) => b.addEventListener("click", () => openRunDialog({ video_id: b.dataset.verify })));
 }
 
 async function renderSkills() {
   const skills = (await api("/api/skills")).filter(matches);
-  view.innerHTML = `<div class="page-head"><div><h1>Skills</h1><p>Agent Skills compiled from verified procedures.</p></div></div>
-    <section class="card">${skills.length ? `<table><thead><tr><th>ID</th><th>Skill</th><th>Procedure</th><th>Verified by</th><th>Results</th><th>Created</th><th></th></tr></thead><tbody>
-    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">Download</a></td></tr>`).join("")}
-    </tbody></table>` : `<p class="empty">Compile a skill from a finished verification run.</p>`}</section>`;
+  view.innerHTML = `<div class="page-head"><div><h1>${t("skills.title")}</h1><p>${t("skills.subtitle")}</p></div></div>
+    <section class="card">${skills.length ? `<table><thead><tr><th>ID</th><th>${t("skills.col_skill")}</th><th>${t("skills.col_procedure")}</th><th>${t("skills.col_verified")}</th><th>${t("skills.col_results")}</th><th>${t("skills.col_review")}</th><th>${t("skills.col_created")}</th><th></th></tr></thead><tbody>
+    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${reviewBadge(s)}</td><td>${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
+    </tbody></table>` : `<p class="empty">${t("skills.none")}</p>`}</section>`;
   bindRowLinks(view);
 }
 
 async function renderSkill(id) {
   const [skills, md] = await Promise.all([api("/api/skills"), api(`/api/skills/${encodeURIComponent(id)}/skill.md`)]);
   const s = skills.find((x) => x.id === id);
-  view.innerHTML = `<div class="page-head"><div><h1><code style="font-size:26px">${esc(s?.name)}</code></h1><p>${esc(s?.procedure)} · verified by <a href="#run/${esc(s?.run_id)}">${esc(s?.run_id)}</a></p></div><div class="spacer"></div>
-    <a class="btn primary" href="/api/skills/${esc(id)}/download">Download skill package</a><a class="btn ghost" href="#skills">← Skills</a></div>
-    <section class="card"><div class="card-head"><h3>SKILL.md</h3><p>Includes references/, evals/ and assets/ in the package.</p></div><div class="skill-md">${esc(md)}</div></section>`;
+  view.innerHTML = `<div class="page-head"><div><h1><code style="font-size:26px">${esc(s?.name)}</code></h1><p>${esc(s?.procedure)} · ${t("skill.verified_by")} <a href="#run/${esc(s?.run_id)}">${esc(s?.run_id)}</a> · ${s ? reviewBadge(s) : ""}</p></div><div class="spacer"></div>
+    ${s && s.review_status !== "approved" ? `<button class="btn ghost" id="approve">${t("skill.approve")}</button>` : ""}
+    <a class="btn primary" href="/api/skills/${esc(id)}/download">${t("skill.download")}</a><a class="btn ghost" href="#skills">${t("skill.back")}</a></div>
+    <section class="card"><div class="card-head"><h3>SKILL.md</h3><p>${t("skill.package")}</p></div><div class="skill-md">${esc(md)}</div></section>`;
+  $("#approve")?.addEventListener("click", async () => {
+    await api(`/api/skills/${encodeURIComponent(id)}/approve`, { method: "POST" });
+    render(true);
+  });
 }
 
 async function renderReports() {
   const runs = (await api("/api/runs")).filter((r) => r.status === "done" && matches(r));
   const details = await Promise.all(runs.slice(0, 20).map((r) => api(`/api/runs/${encodeURIComponent(r.id)}`)));
   const pct = (m) => (m ? `${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span>` : "—");
-  view.innerHTML = `<div class="page-head"><div><h1>Verification Reports</h1><p>How much of each procedure was proven, and with what evidence.</p></div></div>
-    <section class="card">${details.length ? `<table><thead><tr><th>Run</th><th>Video / Observation</th><th>Result</th><th>Evidence traceability</th><th>Safety coverage</th><th>Step coverage</th><th>Observation alignment</th><th>Pass</th><th>Violation</th><th>Unverified</th><th>Insufficient</th></tr></thead><tbody>
+  view.innerHTML = `<div class="page-head"><div><h1>${t("reports.title")}</h1><p>${t("reports.subtitle")}</p></div></div>
+    <section class="card">${details.length ? `<table><thead><tr><th>${t("reports.col_run")}</th><th>${t("runs.col_video")}</th><th>${t("runs.col_result")}</th><th>${t("reports.col_trace")}</th><th>${t("reports.col_safety")}</th><th>${t("reports.col_steps")}</th><th>${t("reports.col_alignment")}</th><th>${t("reports.col_pass")}</th><th>${t("reports.col_violation")}</th><th>${t("reports.col_unverified")}</th><th>${t("reports.col_insufficient")}</th></tr></thead><tbody>
     ${details.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td>${esc(r.id)}</td><td>${esc(r.video_name)}</td><td>${resultBadge(r)}</td><td>${pct(r.metrics.evidence_traceability)}</td><td>${pct(r.metrics.safety_coverage)}</td><td>${pct(r.metrics.step_coverage)}</td><td>${pct(r.metrics.observation_alignment)}</td>
       <td>${r.counts.PASS}</td><td>${r.counts.VIOLATION}</td><td>${r.counts.UNVERIFIED}</td><td>${r.counts.INSUFFICIENT_EVIDENCE}</td></tr>`).join("")}
-    </tbody></table>` : `<p class="empty">No finished runs yet.</p>`}</section>`;
+    </tbody></table>` : `<p class="empty">${t("reports.none")}</p>`}</section>`;
   bindRowLinks(view);
 }
 
 async function renderSettings() {
   const [s, h] = await Promise.all([api("/api/settings"), api("/health")]);
-  const ok = (b) => (b ? `<span class="badge pass">available</span>` : `<span class="badge violation">missing</span>`);
-  view.innerHTML = `<div class="page-head"><div><h1>Settings</h1><p>Configured through environment variables on the server.</p></div></div>
-    <section class="card"><div class="kv">
-      <div>Ollama</div><div>${esc(s.ollama_url)} — ${h.ollama === "ok" ? '<span class="badge pass">reachable</span>' : `<span class="badge violation">${esc(h.ollama)}</span>`}</div>
-      <div>Rule compiler LLM</div><div><code>${esc(s.llm_model)}</code> ${ok(h.models.llm)}</div>
-      <div>Video VLM</div><div><code>${esc(s.vlm_model)}</code> ${ok(h.models.vlm)}</div>
-      <div>Video backend</div><div><code>${esc(s.video_backend)}</code>${s.sop_blueprint_configured ? " · NVIDIA SOP blueprint endpoint configured" : " · NVIDIA SOP blueprint not configured"}</div>
-      <div>Minimum event confidence</div><div>${esc(s.min_confidence)}</div>
-      <div>Version</div><div>${esc(h.version)}</div>
+  let models = [];
+  let modelError = "";
+  try {
+    models = await api("/api/models");
+  } catch (err) {
+    modelError = err.message;
+  }
+  const describe = (m) => [m.parameter_size, m.quantization, m.capabilities.filter((c) => c !== "completion").join("/")].filter(Boolean).join(" · ");
+  const options = (capability, current) => {
+    const fits = models.filter((m) => m.capabilities.includes(capability));
+    const names = new Set(fits.map((m) => m.name));
+    const extra = names.has(current) ? "" : `<option value="${esc(current)}" selected>${esc(current)}</option>`;
+    return extra + fits.map((m) => `<option value="${esc(m.name)}" ${m.name === current ? "selected" : ""}>${esc(m.name)}${describe(m) ? ` — ${esc(describe(m))}` : ""}</option>`).join("");
+  };
+  const ok = (b) => (b ? `<span class="badge pass">${t("settings.available")}</span>` : `<span class="badge violation">${t("settings.missing")}</span>`);
+  view.innerHTML = `<div class="page-head"><div><h1>${t("settings.title")}</h1><p>${t("settings.subtitle")}</p></div></div>
+    <form class="card settings-form" id="settings-form">
+      <div class="card-head"><h3>${t("settings.models_section")}</h3></div>
+      ${modelError ? `<p class="error-text">${esc(t("settings.models_unavailable", { error: modelError }))}</p>` : ""}
+      <label>${t("settings.llm")} ${ok(h.models.llm)}<select name="llm_model">${options("completion", s.llm_model)}</select><small>${t("settings.llm_hint")}</small></label>
+      <label>${t("settings.vlm")} ${ok(h.models.vlm)}<select name="vlm_model">${options("vision", s.vlm_model)}</select><small>${t("settings.vlm_hint")}</small></label>
+      <label class="check"><span><input type="checkbox" name="vlm_thinking" ${s.vlm_thinking ? "checked" : ""}> ${t("settings.vlm_thinking")}</span><small>${t("settings.vlm_thinking_hint")}</small></label>
+      <label>${t("settings.backend")}<select name="video_backend">
+        <option value="local_vlm" ${s.video_backend === "local_vlm" ? "selected" : ""}>${t("settings.backend_local")}</option>
+        <option value="nvidia_sop" ${s.video_backend === "nvidia_sop" ? "selected" : ""}>${t("settings.backend_bp")}</option>
+      </select></label>
+      <label>${t("settings.bp_url")}<input type="text" name="sop_bp_url" value="${esc(s.sop_bp_url || "")}" placeholder="http://127.0.0.1:8000/..."></label>
+      <label>${t("settings.confidence")}<input type="number" name="min_confidence" min="0" max="1" step="0.05" value="${esc(s.min_confidence)}"><small>${t("settings.confidence_hint")}</small></label>
+      <p class="form-error" id="settings-error"></p>
+      <div><button class="btn primary" type="submit">${t("settings.save")}</button></div>
+    </form>
+    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("settings.system")}</h3></div><div class="kv">
+      <div>${t("settings.language")}</div><div><button class="btn small ${LANG === "en" ? "primary" : "ghost"}" data-lang="en">English</button> <button class="btn small ${LANG === "zh" ? "primary" : "ghost"}" data-lang="zh">中文</button></div>
+      <div>Ollama</div><div>${esc(s.ollama_url)} — ${h.ollama === "ok" ? `<span class="badge pass">${t("settings.reachable")}</span>` : `<span class="badge violation">${esc(h.ollama)}</span>`}</div>
+      <div>${t("settings.version")}</div><div>${esc(h.version)}</div>
     </div></section>`;
+  const form = $("#settings-form");
+  const syncBackend = () => (form.sop_bp_url.disabled = form.video_backend.value !== "nvidia_sop");
+  form.video_backend.addEventListener("change", syncBackend);
+  syncBackend();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    $("#settings-error").textContent = "";
+    const body = {
+      llm_model: form.llm_model.value,
+      vlm_model: form.vlm_model.value,
+      vlm_thinking: form.vlm_thinking.checked,
+      video_backend: form.video_backend.value,
+      sop_bp_url: form.sop_bp_url.value.trim() || null,
+      min_confidence: Number(form.min_confidence.value),
+    };
+    try {
+      await api("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      toast(t("settings.saved"));
+      refreshHealth();
+      render(true);
+    } catch (err) {
+      $("#settings-error").textContent = err.message;
+    }
+  });
+  view.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => switchLang(b.dataset.lang)));
 }
 
 async function refreshHealth() {
@@ -490,7 +628,7 @@ async function refreshHealth() {
     const h = await api("/health");
     const good = h.ollama === "ok" && Object.values(h.models).every(Boolean);
     $("#health").className = `health ${good ? "ok" : "bad"}`;
-    $("#health").title = good ? "Models available" : `Model service issue: ${h.ollama}`;
+    $("#health").title = good ? t("top.health_ok") : t("top.health_bad", { detail: h.ollama });
   } catch {
     $("#health").className = "health bad";
   }
@@ -500,10 +638,10 @@ async function render(keepScroll = false) {
   const token = ++state.renderToken;
   clearTimeout(state.pollTimer);
   const [route, id] = (location.hash.slice(1) || "dashboard").split("/");
-  const navView = { run: "runs", manual: "manuals", skill: "skills" }[route] || route;
+  const navView = { run: "runs", pipeline: "runs", manual: "manuals", skill: "skills" }[route] || route;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === navView));
   const scroll = window.scrollY;
-  const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, settings: renderSettings };
+  const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), pipeline: () => renderPipeline(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, settings: renderSettings };
   try {
     await (routes[route] || renderDashboard)();
   } catch (err) {
@@ -512,6 +650,22 @@ async function render(keepScroll = false) {
   if (keepScroll) window.scrollTo(0, scroll);
 }
 
+function applyStaticText() {
+  document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => (el.innerHTML = t(el.dataset.i18nHtml)));
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => (el.placeholder = t(el.dataset.i18nPlaceholder)));
+}
+
+function switchLang(lang) {
+  setLang(lang);
+  applyStaticText();
+  refreshHealth();
+  render(true);
+}
+
+$("#lang-toggle").addEventListener("click", () => switchLang(LANG === "zh" ? "en" : "zh"));
+
 $("#search").addEventListener("input", (e) => {
   state.query = e.target.value.trim().toLowerCase();
   const route = (location.hash.slice(1) || "dashboard").split("/")[0];
@@ -519,6 +673,7 @@ $("#search").addEventListener("input", (e) => {
   else if (state.query) location.hash = "#runs";
 });
 window.addEventListener("hashchange", () => render());
+applyStaticText();
 render();
 refreshHealth();
 setInterval(refreshHealth, 30000);

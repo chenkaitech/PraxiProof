@@ -13,7 +13,12 @@ class LLMError(RuntimeError):
 
 class LLM(Protocol):
     def chat_json(
-        self, model: str, messages: list[Message], schema: dict[str, Any], images: list[bytes] | None = None
+        self,
+        model: str,
+        messages: list[Message],
+        schema: dict[str, Any],
+        images: list[bytes] | None = None,
+        think: bool | None = None,
     ) -> dict[str, Any]: ...
 
     def chat(self, model: str, messages: list[Message], tools: list[dict[str, Any]] | None = None) -> Message: ...
@@ -35,22 +40,27 @@ class OllamaClient:
         return response.json()
 
     def chat_json(
-        self, model: str, messages: list[Message], schema: dict[str, Any], images: list[bytes] | None = None
+        self,
+        model: str,
+        messages: list[Message],
+        schema: dict[str, Any],
+        images: list[bytes] | None = None,
+        think: bool | None = None,
     ) -> dict[str, Any]:
         messages = [dict(m) for m in messages]
         if images:
             messages[-1]["images"] = [base64.b64encode(img).decode() for img in images]
-        data = self._post(
-            "/api/chat",
-            {
-                "model": model,
-                "messages": messages,
-                "format": schema,
-                "stream": False,
-                "keep_alive": self._keep_alive,
-                "options": self._options,
-            },
-        )
+        payload = {
+            "model": model,
+            "messages": messages,
+            "format": schema,
+            "stream": False,
+            "keep_alive": self._keep_alive,
+            "options": self._options,
+        }
+        if think is not None:
+            payload["think"] = think
+        data = self._post("/api/chat", payload)
         content = data.get("message", {}).get("content", "")
         try:
             return json.loads(content)
@@ -70,6 +80,25 @@ class OllamaClient:
             payload["tools"] = tools
         return self._post("/api/chat", payload)["message"]
 
+
+    def models(self) -> list[dict[str, Any]]:
+        catalog = []
+        for name in self.ping():
+            try:
+                info = self._post("/api/show", {"model": name})
+            except LLMError:
+                continue
+            details = info.get("details", {})
+            catalog.append(
+                {
+                    "name": name,
+                    "capabilities": info.get("capabilities", []),
+                    "parameter_size": details.get("parameter_size"),
+                    "quantization": details.get("quantization_level"),
+                    "family": details.get("family"),
+                }
+            )
+        return catalog
 
     def ping(self) -> list[str]:
         try:

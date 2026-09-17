@@ -25,8 +25,11 @@ class Verdict(BaseModel):
     observed_event_ids: list[str] = Field(default_factory=list)
     requirement_evidence_ids: list[str] = Field(default_factory=list)
     observation_evidence_ids: list[str] = Field(default_factory=list)
+    reason_code: str | None = None
+    reason_params: dict[str, str] = Field(default_factory=dict)
     measured: dict[str, Any] | None = None
     needed_evidence: str | None = None
+    needed_code: str | None = None
     review: Literal["accepted", "rejected"] | None = None
 
 

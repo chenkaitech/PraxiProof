@@ -8,7 +8,7 @@ from typing import Any
 
 from praxiproof.ir.evidence import Evidence
 
-_TABLES = {"manuals": "MAN", "videos": "VID", "runs": "V", "skills": "SK"}
+_TABLES = {"manuals": "MAN", "videos": "VID", "runs": "V", "skills": "SK", "pipelines": "PL"}
 
 
 class NotFound(KeyError):

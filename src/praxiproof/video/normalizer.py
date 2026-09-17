@@ -21,6 +21,7 @@ def normalize(
     meta: VideoMeta,
     backend: str,
     model: str | None,
+    approximate: bool = False,
 ) -> tuple[Observation, list[Evidence]]:
     events, evidence = [], []
     for i, seg in enumerate(sorted(segments, key=lambda s: (s.start, s.end)), start=1):
@@ -50,5 +51,7 @@ def normalize(
                 evidence_id=item.evidence_id,
             )
         )
-    observation = Observation(source_id=source_id, duration=meta.duration, complete=True, backend=backend, model=model, events=events)
+    observation = Observation(
+        source_id=source_id, duration=meta.duration, complete=True, approximate=approximate, backend=backend, model=model, events=events
+    )
     return observation, evidence

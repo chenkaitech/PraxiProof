@@ -11,8 +11,8 @@ SYSTEM_PROMPT = (
     "official procedure. Use the tools to look up the manual, the verification report, evidence and the verified "
     "skill. For any question about whether a rule was followed, call get_verification_report first and report its "
     "status and measured values exactly; never recompute times or overrule a verdict yourself. Every claim about a "
-    "rule must cite the manual location (use show_evidence for page and quote), and every claim about what happened "
-    "must cite the video time range. If a rule is UNVERIFIED or INSUFFICIENT_EVIDENCE, say so plainly instead of guessing."
+    "rule must cite the manual page or section from manual_evidence, and every claim about what happened must cite "
+    "the video time range from video_evidence; do not cite bare evidence ids. If a rule is UNVERIFIED or INSUFFICIENT_EVIDENCE, say so plainly instead of guessing."
 )
 
 
@@ -50,11 +50,11 @@ class ComplianceAgent:
             "load_verified_skill": self.load_verified_skill,
         }
 
-    def ask(self, question: str, run_id: str | None = None) -> dict[str, Any]:
-        context = ""
+    def ask(self, question: str, run_id: str | None = None, language: str = "en") -> dict[str, Any]:
+        context = "\nAnswer in Simplified Chinese; keep rule ids, event labels and manual quotes as written." if language == "zh" else ""
         if run_id:
             run = self.app.store.get("runs", run_id)
-            context = f"\nCurrent run: {run_id} (manual {run['manual_id']}, video '{run['video_name']}')."
+            context += f"\nCurrent run: {run_id} (manual {run['manual_id']}, video '{run['video_name']}')."
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT + context},
             {"role": "user", "content": question},
@@ -110,6 +110,16 @@ class ComplianceAgent:
 
     def get_verification_report(self, run_id: str) -> list[dict[str, Any]]:
         report = self.app.report(run_id)
+        ids = [e for v in report.verdicts for e in v.requirement_evidence_ids + v.observation_evidence_ids]
+        evidence = self.app.store.evidence(ids)
+
+        def cite(evidence_ids: list[str]) -> list[dict[str, str]]:
+            return [
+                {"evidence_id": e, "citation": evidence[e].citation(), "text": (evidence[e].text or "")[:300]}
+                for e in evidence_ids
+                if e in evidence
+            ]
+
         return [
             {
                 "rule_id": v.rule_id,
@@ -118,8 +128,8 @@ class ComplianceAgent:
                 "status": v.status,
                 "reason": v.reason,
                 "measured": v.measured,
-                "manual_evidence": v.requirement_evidence_ids,
-                "video_evidence": v.observation_evidence_ids,
+                "manual_evidence": cite(v.requirement_evidence_ids),
+                "video_evidence": cite(v.observation_evidence_ids),
                 "review": v.review,
             }
             for v in report.verdicts

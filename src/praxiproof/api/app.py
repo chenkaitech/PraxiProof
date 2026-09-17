@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import shutil
@@ -7,12 +8,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from praxiproof import __version__
-from praxiproof.config import Settings, get_settings
+from praxiproof.config import Settings, get_settings, load_overrides
 from praxiproof.llm import LLM, LLMError, OllamaClient
 from praxiproof.runtime.compliance_agent import ComplianceAgent
 from praxiproof.service import PraxiProof
@@ -21,6 +22,17 @@ from praxiproof.video.backend import VideoBackend
 from praxiproof.video.frames import FFmpegError
 
 STATIC_DIR = Path(__file__).parent / "static"
+ASSET_URLS = ("/static/styles.css", "/static/logo.svg", "/static/i18n.js", "/static/app.js")
+
+
+def _versioned_index() -> str:
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    for url in ASSET_URLS:
+        digest = hashlib.sha256((STATIC_DIR / Path(url).name).read_bytes()).hexdigest()[:10]
+        html = html.replace(f'"{url}"', f'"{url}?v={digest}"')
+    return html
+
+
 DEFAULT_DEMO_DIR = Path(__file__).resolve().parents[3] / "demo"
 
 
@@ -35,9 +47,19 @@ class ReviewRequest(BaseModel):
     decision: Literal["accepted", "rejected"] | None
 
 
+class SettingsUpdate(BaseModel):
+    llm_model: str | None = None
+    vlm_model: str | None = None
+    vlm_thinking: bool | None = None
+    video_backend: str | None = None
+    sop_bp_url: str | None = None
+    min_confidence: float | None = None
+
+
 class AskRequest(BaseModel):
     question: str
     run_id: str | None = None
+    language: Literal["en", "zh"] = "en"
 
 
 def create_app(
@@ -46,7 +68,7 @@ def create_app(
     backend_factory: Callable[[], VideoBackend] | None = None,
     demo_dir: Path | None = None,
 ) -> FastAPI:
-    settings = settings or get_settings()
+    settings = load_overrides(settings or get_settings())
     llm = llm or OllamaClient(settings.ollama_url, settings.keep_alive)
     core = PraxiProof(settings, llm, backend_factory=backend_factory)
     agent = ComplianceAgent(core)
@@ -56,6 +78,13 @@ def create_app(
 
     app = FastAPI(title="PraxiProof", version=__version__)
     app.state.core = core
+
+    @app.middleware("http")
+    async def _revalidate_ui(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.exception_handler(NotFound)
     async def _not_found(_: Request, exc: NotFound) -> JSONResponse:
@@ -75,8 +104,13 @@ def create_app(
             shutil.copyfileobj(upload.file, out)
         return Path(name)
 
+    def _models() -> list[dict[str, Any]] | None:
+        lister = getattr(llm, "models", None)
+        return lister() if lister else None
+
     @app.get("/health")
     def health() -> dict[str, Any]:
+        settings = core.settings
         wanted = {"llm": settings.llm_model, "vlm": settings.vlm_model}
         ping = getattr(llm, "ping", None)
         try:
@@ -87,16 +121,40 @@ def create_app(
             models, ollama = {k: False for k in wanted}, str(exc)
         return {"status": "ok", "version": __version__, "ollama": ollama, "models": models, "video_backend": settings.video_backend}
 
+    def _settings_view() -> dict[str, Any]:
+        s = core.settings
+        return {
+            "llm_model": s.llm_model,
+            "vlm_model": s.vlm_model,
+            "vlm_thinking": s.vlm_thinking,
+            "video_backend": s.video_backend,
+            "sop_bp_url": s.sop_bp_url,
+            "sop_blueprint_configured": bool(s.sop_bp_url),
+            "min_confidence": s.min_confidence,
+            "ollama_url": s.ollama_url,
+        }
+
     @app.get("/api/settings")
     def app_settings() -> dict[str, Any]:
-        return {
-            "llm_model": settings.llm_model,
-            "vlm_model": settings.vlm_model,
-            "video_backend": settings.video_backend,
-            "sop_blueprint_configured": bool(settings.sop_bp_url),
-            "min_confidence": settings.min_confidence,
-            "ollama_url": settings.ollama_url,
-        }
+        return _settings_view()
+
+    @app.put("/api/settings")
+    def update_settings(body: SettingsUpdate) -> dict[str, Any]:
+        changes = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None or k == "sop_bp_url"}
+        needs_models = any(changes.get(k) for k in ("llm_model", "vlm_model"))
+        try:
+            models = _models() if needs_models else None
+        except LLMError as exc:
+            raise HTTPException(status_code=503, detail=f"cannot verify models: {exc}") from exc
+        core.update_settings(changes, models)
+        return _settings_view()
+
+    @app.get("/api/models")
+    def list_models() -> list[dict[str, Any]]:
+        try:
+            return _models() or []
+        except LLMError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.get("/api/dashboard")
     def dashboard() -> dict[str, Any]:
@@ -128,10 +186,10 @@ def create_app(
         return record
 
     @app.post("/api/videos", status_code=201)
-    def upload_video(file: UploadFile = File(...)) -> dict[str, Any]:
+    def upload_video(file: UploadFile = File(...), note: str | None = Form(None)) -> dict[str, Any]:
         path = _save(file)
         try:
-            return core.add_video(path, file.filename or "video.mp4")
+            return core.add_video(path, file.filename or "video.mp4", note)
         except FFmpegError:
             path.unlink(missing_ok=True)
             raise
@@ -152,22 +210,76 @@ def create_app(
     def demo_observations() -> list[dict[str, Any]]:
         folder = demo_dir / "observations"
         return [
-            {"name": p.stem, "title": json.loads(p.read_text(encoding="utf-8")).get("title", p.stem)}
+            {"name": p.stem, "title": (data := json.loads(p.read_text(encoding="utf-8"))).get("title", p.stem), "title_zh": data.get("title_zh")}
             for p in sorted(folder.glob("*.json"))
         ]
+
+    def _demo_observation(name: str) -> tuple[dict[str, Any], str]:
+        path = demo_dir / "observations" / f"{Path(name).name}.json"
+        if not path.exists():
+            raise NotFound(f"demo observation {name} not found")
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        return fixture["observation"], fixture.get("video_name", path.stem)
 
     @app.post("/api/runs", status_code=202)
     def start_run(body: RunRequest, background: BackgroundTasks) -> dict[str, Any]:
         observation, label = body.observation, None
         if body.demo_observation:
-            path = demo_dir / "observations" / f"{Path(body.demo_observation).name}.json"
-            if not path.exists():
-                raise NotFound(f"demo observation {body.demo_observation} not found")
-            fixture = json.loads(path.read_text(encoding="utf-8"))
-            observation, label = fixture["observation"], fixture.get("video_name", path.stem)
+            observation, label = _demo_observation(body.demo_observation)
         record = core.create_run(body.manual_id, body.video_id, observation, label)
         background.add_task(core.process_run, record["id"])
         return record
+
+    @app.post("/api/pipelines", status_code=202)
+    def start_pipeline(
+        background: BackgroundTasks,
+        manual: UploadFile | None = File(None),
+        manual_id: str | None = Form(None),
+        procedure: str | None = Form(None),
+        video: UploadFile | None = File(None),
+        video_id: str | None = Form(None),
+        video_note: str | None = Form(None),
+        demo_observation: str | None = Form(None),
+    ) -> dict[str, Any]:
+        if (manual is None) == (not manual_id):
+            raise ValueError("provide exactly one of a manual file or manual_id")
+        if sum(bool(x) for x in (video, video_id, demo_observation)) != 1:
+            raise ValueError("provide exactly one of a video file, video_id, or demo_observation")
+        observation, label = _demo_observation(demo_observation) if demo_observation else (None, None)
+        if manual_id:
+            core.store.get("manuals", manual_id)
+        if video_id:
+            core.store.get("videos", video_id)
+        if video is not None:
+            path = _save(video)
+            try:
+                video_id = core.add_video(path, video.filename or "video.mp4", video_note)["id"]
+            except FFmpegError:
+                path.unlink(missing_ok=True)
+                raise
+        if manual is not None:
+            manual_id = core.add_manual(_save(manual), manual.filename or "manual", procedure or None)["id"]
+        record = core.create_pipeline(manual_id, video_id, observation, label)
+        background.add_task(core.process_pipeline, record["id"])
+        return record
+
+    @app.get("/api/pipelines")
+    def list_pipelines() -> list[dict[str, Any]]:
+        return [{k: v for k, v in p.items() if k != "input_observation"} for p in core.store.list("pipelines")]
+
+    @app.get("/api/pipelines/{pipeline_id}")
+    def get_pipeline(pipeline_id: str) -> dict[str, Any]:
+        pipeline = {k: v for k, v in core.store.get("pipelines", pipeline_id).items() if k != "input_observation"}
+        manual = core.store.get("manuals", pipeline["manual_id"])
+        run = core.store.get("runs", pipeline["run_id"]) if pipeline.get("run_id") else None
+        return pipeline | {
+            "manual": {k: manual.get(k) for k in ("id", "filename", "status", "procedure", "counts", "error")},
+            "run": {k: run.get(k) for k in ("id", "status", "stage", "result", "violations", "counts", "error")} if run else None,
+        }
+
+    @app.post("/api/skills/{skill_id}/approve")
+    def approve_skill(skill_id: str) -> dict[str, Any]:
+        return core.approve_skill(skill_id)
 
     @app.get("/api/runs")
     def list_runs() -> list[dict[str, Any]]:
@@ -179,6 +291,8 @@ def create_app(
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str) -> dict[str, Any]:
         run = core.store.get("runs", run_id)
+        if run.get("video_id"):
+            run["video_note"] = core.store.get("videos", run["video_id"]).get("note")
         if run.get("status") == "done":
             run["findings"] = core.finding_details(run)
             report = run["report"]
@@ -217,14 +331,16 @@ def create_app(
     @app.post("/api/agent/ask")
     def ask(body: AskRequest) -> dict[str, Any]:
         try:
-            return agent.ask(body.question, body.run_id)
+            return agent.ask(body.question, body.run_id, body.language)
         except LLMError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    index_html = _versioned_index()
+
     @app.get("/")
-    def index() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
+    def index() -> HTMLResponse:
+        return HTMLResponse(index_html)
 
     return app

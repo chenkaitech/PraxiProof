@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from praxiproof.api.app import DEFAULT_DEMO_DIR
-from praxiproof.config import get_settings
+from praxiproof.config import get_settings, load_overrides
 
 
 def main() -> None:
@@ -22,6 +22,11 @@ def main() -> None:
     compile_cmd.add_argument("manual", type=Path)
     compile_cmd.add_argument("--procedure")
 
+    sop = sub.add_parser("eval-sop", help="score the video backend on the NVIDIA SOP server-fan sample dataset")
+    sop.add_argument("--data", type=Path, required=True, help="the extracted server_fan directory")
+    sop.add_argument("--videos", nargs="+", default=["Install_12", "Install_13"])
+    sop.add_argument("--out", type=Path, required=True)
+
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     if args.command == "serve":
@@ -32,12 +37,20 @@ def main() -> None:
         uvicorn.run(create_app(), host=args.host, port=args.port)
     elif args.command == "bench":
         print(json.dumps(run_benchmark(args.demo_dir), indent=2))
+    elif args.command == "eval-sop":
+        from praxiproof.eval.nvidia_sop import evaluate
+        from praxiproof.llm import OllamaClient
+        from praxiproof.video.backend import get_backend
+
+        settings = load_overrides(get_settings())
+        backend = get_backend(settings, OllamaClient(settings.ollama_url, settings.keep_alive))
+        print(json.dumps(evaluate(args.data, args.videos, backend, args.out)["summary"], indent=2))
     else:
         from praxiproof.constraints.compiler import compile_requirements
         from praxiproof.document.extract import extract
         from praxiproof.llm import OllamaClient
 
-        settings = get_settings()
+        settings = load_overrides(get_settings())
         doc = extract(args.manual, source_id="CLI")
         result = compile_requirements(doc, OllamaClient(settings.ollama_url, settings.keep_alive), settings.llm_model, args.procedure)
         print(result.model_dump_json(indent=2, exclude={"evidence"}))
