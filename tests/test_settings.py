@@ -68,6 +68,15 @@ def test_blueprint_backend_needs_url(client):
     assert r.status_code == 200 and r.json()["sop_blueprint_configured"] is True
 
 
+def test_ddm_backend_requires_existing_checkpoint(client, tmp_path):
+    assert client.put("/api/settings", json={"video_backend": "ddm_vlm"}).status_code == 400
+    assert client.put("/api/settings", json={"ddm_checkpoint": str(tmp_path / "missing.ckpt")}).status_code == 400
+    checkpoint = tmp_path / "ddm.ckpt"
+    checkpoint.write_bytes(b"weights")
+    r = client.put("/api/settings", json={"video_backend": "ddm_vlm", "ddm_checkpoint": str(checkpoint)})
+    assert r.status_code == 200 and r.json()["ddm_checkpoint"] == str(checkpoint)
+
+
 def test_video_backend_uses_current_models(settings):
     core = PraxiProof(settings, CatalogLLM())
     assert core._backend_factory().model == settings.vlm_model
@@ -76,6 +85,11 @@ def test_video_backend_uses_current_models(settings):
     assert (core._backend_factory().model, core._backend_factory().thinking) == ("qwen3.6:35b-a3b-q8_0", True)
     core.update_settings({"video_backend": "nvidia_sop", "sop_bp_url": "http://127.0.0.1:8000/sop"}, None)
     assert core._backend_factory().name == "nvidia_sop"
+    checkpoint = settings.data_dir / "ddm.ckpt"
+    checkpoint.write_bytes(b"weights")
+    core.update_settings({"video_backend": "ddm_vlm", "ddm_checkpoint": str(checkpoint)}, None)
+    backend = core._backend_factory()
+    assert (backend.name, backend.model, backend.runner.checkpoint) == ("ddm_vlm", "qwen3.6:35b-a3b-q8_0", checkpoint)
 
 
 def test_model_catalog_skips_models_that_cannot_be_inspected(monkeypatch):

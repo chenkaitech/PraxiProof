@@ -23,6 +23,13 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
         if not settings.sop_bp_url:
             raise ValueError("PRAXIPROOF_SOP_BP_URL must be set to use the nvidia_sop video backend")
         return NvidiaSOPBackend(settings.sop_bp_url)
+    if settings.video_backend == "ddm_vlm":
+        from praxiproof.video.ddm_vlm_adapter import DDMRunner, DDMVLMBackend
+
+        if not settings.ddm_checkpoint:
+            raise ValueError("a DDM-Net checkpoint must be configured to use the ddm_vlm video backend")
+        runner = DDMRunner(settings.ddm_image, settings.ddm_code_dir, settings.ddm_checkpoint, settings.data_dir / "ddm_work")
+        return DDMVLMBackend(llm, settings.vlm_model, runner, thinking=settings.vlm_thinking)
     if settings.video_backend == "local_vlm":
         from praxiproof.video.local_vlm_adapter import LocalVLMBackend
 

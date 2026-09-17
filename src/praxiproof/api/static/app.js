@@ -584,8 +584,10 @@ async function renderSettings() {
       <label class="check"><span><input type="checkbox" name="vlm_thinking" ${s.vlm_thinking ? "checked" : ""}> ${t("settings.vlm_thinking")}</span><small>${t("settings.vlm_thinking_hint")}</small></label>
       <label>${t("settings.backend")}<select name="video_backend">
         <option value="local_vlm" ${s.video_backend === "local_vlm" ? "selected" : ""}>${t("settings.backend_local")}</option>
+        <option value="ddm_vlm" ${s.video_backend === "ddm_vlm" ? "selected" : ""}>${t("settings.backend_ddm")}</option>
         <option value="nvidia_sop" ${s.video_backend === "nvidia_sop" ? "selected" : ""}>${t("settings.backend_bp")}</option>
       </select></label>
+      <label>${t("settings.ddm_checkpoint")}<input type="text" name="ddm_checkpoint" value="${esc(s.ddm_checkpoint || "")}" placeholder="/home/…/ddm_server_fan.ckpt"><small>${t("settings.ddm_hint")}</small></label>
       <label>${t("settings.bp_url")}<input type="text" name="sop_bp_url" value="${esc(s.sop_bp_url || "")}" placeholder="http://127.0.0.1:8000/..."></label>
       <label>${t("settings.confidence")}<input type="number" name="min_confidence" min="0" max="1" step="0.05" value="${esc(s.min_confidence)}"><small>${t("settings.confidence_hint")}</small></label>
       <p class="form-error" id="settings-error"></p>
@@ -597,7 +599,10 @@ async function renderSettings() {
       <div>${t("settings.version")}</div><div>${esc(h.version)}</div>
     </div></section>`;
   const form = $("#settings-form");
-  const syncBackend = () => (form.sop_bp_url.disabled = form.video_backend.value !== "nvidia_sop");
+  const syncBackend = () => {
+    form.sop_bp_url.disabled = form.video_backend.value !== "nvidia_sop";
+    form.ddm_checkpoint.disabled = form.video_backend.value !== "ddm_vlm";
+  };
   form.video_backend.addEventListener("change", syncBackend);
   syncBackend();
   form.addEventListener("submit", async (event) => {
@@ -609,6 +614,7 @@ async function renderSettings() {
       vlm_thinking: form.vlm_thinking.checked,
       video_backend: form.video_backend.value,
       sop_bp_url: form.sop_bp_url.value.trim() || null,
+      ddm_checkpoint: form.ddm_checkpoint.value.trim() || null,
       min_confidence: Number(form.min_confidence.value),
     };
     try {

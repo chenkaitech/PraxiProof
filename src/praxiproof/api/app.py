@@ -53,6 +53,7 @@ class SettingsUpdate(BaseModel):
     vlm_thinking: bool | None = None
     video_backend: str | None = None
     sop_bp_url: str | None = None
+    ddm_checkpoint: str | None = None
     min_confidence: float | None = None
 
 
@@ -130,6 +131,7 @@ def create_app(
             "video_backend": s.video_backend,
             "sop_bp_url": s.sop_bp_url,
             "sop_blueprint_configured": bool(s.sop_bp_url),
+            "ddm_checkpoint": s.ddm_checkpoint,
             "min_confidence": s.min_confidence,
             "ollama_url": s.ollama_url,
         }
@@ -140,7 +142,7 @@ def create_app(
 
     @app.put("/api/settings")
     def update_settings(body: SettingsUpdate) -> dict[str, Any]:
-        changes = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None or k == "sop_bp_url"}
+        changes = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None or k in ("sop_bp_url", "ddm_checkpoint")}
         needs_models = any(changes.get(k) for k in ("llm_model", "vlm_model"))
         try:
             models = _models() if needs_models else None

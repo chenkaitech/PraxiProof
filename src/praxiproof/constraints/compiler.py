@@ -66,6 +66,9 @@ Rules:
 - Define a small vocabulary of events. Each event is one physical action or visible state change a camera
   filming the technician could capture (e.g. "fan_removed", "bezel_installed"). Labels are snake_case,
   past tense, specific to this procedure. Describe what the camera would show.
+- Repeated identical steps (installing several identical fans or power supplies) share ONE event label,
+  and the number required becomes a COUNT rule. Do not create numbered events such as psu_1_installed and
+  psu_2_installed: a camera cannot tell which identical part is "first" or "second".
 - When the manual offers alternatives ("any of the following", "or"), define ONE event covering all of them
   (e.g. "fan_health_confirmed: amber LED off, BMC sensors, or nvsm show fans checked") instead of one
   mandatory event per alternative. Mark it observable=false only if none of the alternatives is visible.

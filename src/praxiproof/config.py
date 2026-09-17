@@ -4,8 +4,8 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "min_confidence")
-VIDEO_BACKENDS = ("local_vlm", "nvidia_sop")
+EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "min_confidence")
+VIDEO_BACKENDS = ("local_vlm", "ddm_vlm", "nvidia_sop")
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,9 @@ class Settings:
     vlm_thinking: bool
     video_backend: str
     sop_bp_url: str | None
+    ddm_checkpoint: str | None
+    ddm_image: str
+    ddm_code_dir: str
     data_dir: Path
     keep_alive: str
     min_confidence: float
@@ -29,6 +32,9 @@ def get_settings() -> Settings:
         vlm_thinking=os.environ.get("PRAXIPROOF_VLM_THINKING", "false").lower() in ("1", "true", "yes"),
         video_backend=os.environ.get("PRAXIPROOF_VIDEO_BACKEND", "local_vlm"),
         sop_bp_url=os.environ.get("PRAXIPROOF_SOP_BP_URL") or None,
+        ddm_checkpoint=os.environ.get("PRAXIPROOF_DDM_CHECKPOINT") or None,
+        ddm_image=os.environ.get("PRAXIPROOF_DDM_IMAGE", "praxiproof-ddm:26.08"),
+        ddm_code_dir=os.environ.get("PRAXIPROOF_DDM_CODE_DIR", str(Path.home() / "ddm-train/ddm/DDM-Net")),
         data_dir=Path(os.environ.get("PRAXIPROOF_DATA_DIR", "data")).resolve(),
         keep_alive=os.environ.get("PRAXIPROOF_KEEP_ALIVE", "5m"),
         min_confidence=float(os.environ.get("PRAXIPROOF_MIN_CONFIDENCE", "0.5")),
@@ -68,6 +74,11 @@ def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | Non
         if not 0.0 <= value <= 1.0:
             raise ValueError("min_confidence must be between 0 and 1")
         clean["min_confidence"] = value
+    if "ddm_checkpoint" in clean:
+        path = (clean["ddm_checkpoint"] or "").strip() or None
+        if path and not Path(path).is_file():
+            raise ValueError(f"ddm_checkpoint: file not found: {path}")
+        clean["ddm_checkpoint"] = path
     if "sop_bp_url" in clean:
         url = (clean["sop_bp_url"] or "").strip() or None
         if url and not url.startswith(("http://", "https://")):

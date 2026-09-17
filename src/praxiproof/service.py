@@ -69,6 +69,8 @@ class PraxiProof:
         updated = replace(self.settings, **clean)
         if updated.video_backend == "nvidia_sop" and not updated.sop_bp_url:
             raise ValueError("sop_bp_url is required for the nvidia_sop video backend")
+        if updated.video_backend == "ddm_vlm" and not updated.ddm_checkpoint:
+            raise ValueError("ddm_checkpoint is required for the ddm_vlm video backend")
         save_overrides(updated)
         self.settings = updated
         return updated
