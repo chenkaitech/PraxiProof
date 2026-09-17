@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from praxiproof.api.app import create_app
-from praxiproof.config import load_overrides
+from praxiproof.config import load_overrides, validate_changes
 from praxiproof.llm import LLMError, OllamaClient
 from praxiproof.service import PraxiProof
 from tests.conftest import DEMO_DIR, FakeLLM
@@ -105,3 +105,11 @@ def test_model_catalog_skips_models_that_cannot_be_inspected(monkeypatch):
     assert client.models() == [
         {"name": "qwen3:14b", "capabilities": ["completion"], "parameter_size": "14.8B", "quantization": "Q4_K_M", "family": "qwen3"}
     ]
+
+
+def test_reference_dir_must_contain_an_index(tmp_path):
+    with pytest.raises(ValueError, match="references.json"):
+        validate_changes({"reference_dir": str(tmp_path)}, None)
+    (tmp_path / "references.json").write_text("{}")
+    assert validate_changes({"reference_dir": f" {tmp_path} "}, None) == {"reference_dir": str(tmp_path)}
+    assert validate_changes({"reference_dir": ""}, None) == {"reference_dir": None}

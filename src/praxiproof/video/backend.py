@@ -28,8 +28,20 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
 
         if not settings.ddm_checkpoint:
             raise ValueError("a DDM-Net checkpoint must be configured to use the ddm_vlm video backend")
+        from praxiproof.verifier.aligner import llm_matcher
+        from praxiproof.video.references import load_references
+
         runner = DDMRunner(settings.ddm_image, settings.ddm_code_dir, settings.ddm_checkpoint, settings.data_dir / "ddm_work")
-        return DDMVLMBackend(llm, settings.vlm_model, runner, thinking=settings.vlm_thinking)
+        references = load_references(Path(settings.reference_dir)) if settings.reference_dir else None
+        return DDMVLMBackend(
+            llm,
+            settings.vlm_model,
+            runner,
+            thinking=settings.vlm_thinking,
+            disagreement_confidence=settings.min_confidence / 2,
+            references=references,
+            matcher=llm_matcher(llm, settings.llm_model),
+        )
     if settings.video_backend == "local_vlm":
         from praxiproof.video.local_vlm_adapter import LocalVLMBackend
 

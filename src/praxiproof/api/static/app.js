@@ -588,6 +588,7 @@ async function renderSettings() {
         <option value="nvidia_sop" ${s.video_backend === "nvidia_sop" ? "selected" : ""}>${t("settings.backend_bp")}</option>
       </select></label>
       <label>${t("settings.ddm_checkpoint")}<input type="text" name="ddm_checkpoint" value="${esc(s.ddm_checkpoint || "")}" placeholder="/home/…/ddm_server_fan.ckpt"><small>${t("settings.ddm_hint")}</small></label>
+      <label>${t("settings.reference_dir")}<input type="text" name="reference_dir" value="${esc(s.reference_dir || "")}" placeholder="/home/…/references/server_fan"><small>${t("settings.reference_hint")}</small></label>
       <label>${t("settings.bp_url")}<input type="text" name="sop_bp_url" value="${esc(s.sop_bp_url || "")}" placeholder="http://127.0.0.1:8000/..."></label>
       <label>${t("settings.confidence")}<input type="number" name="min_confidence" min="0" max="1" step="0.05" value="${esc(s.min_confidence)}"><small>${t("settings.confidence_hint")}</small></label>
       <p class="form-error" id="settings-error"></p>
@@ -602,6 +603,7 @@ async function renderSettings() {
   const syncBackend = () => {
     form.sop_bp_url.disabled = form.video_backend.value !== "nvidia_sop";
     form.ddm_checkpoint.disabled = form.video_backend.value !== "ddm_vlm";
+    form.reference_dir.disabled = form.video_backend.value !== "ddm_vlm";
   };
   form.video_backend.addEventListener("change", syncBackend);
   syncBackend();
@@ -615,6 +617,7 @@ async function renderSettings() {
       video_backend: form.video_backend.value,
       sop_bp_url: form.sop_bp_url.value.trim() || null,
       ddm_checkpoint: form.ddm_checkpoint.value.trim() || null,
+      reference_dir: form.reference_dir.value.trim() || null,
       min_confidence: Number(form.min_confidence.value),
     };
     try {

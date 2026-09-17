@@ -27,6 +27,17 @@ def main() -> None:
     sop.add_argument("--videos", nargs="+", default=["Install_12", "Install_13"])
     sop.add_argument("--out", type=Path, required=True)
 
+    refs = sub.add_parser("build-references", help="extract reference images of each action from SOP training recordings")
+    refs.add_argument("--data", type=Path, required=True, help="the extracted server_fan directory")
+    refs.add_argument("--videos", nargs="+", required=True, help="training recordings to take frames from")
+    refs.add_argument("--per-group", type=int, default=3)
+    refs.add_argument("--out", type=Path, required=True)
+
+    edits = sub.add_parser("make-edits", help="build compliant, missing-step and reordered copies of a SOP recording")
+    edits.add_argument("--data", type=Path, required=True, help="the extracted server_fan directory")
+    edits.add_argument("--video", required=True)
+    edits.add_argument("--out", type=Path, required=True)
+
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     if args.command == "serve":
@@ -37,6 +48,15 @@ def main() -> None:
         uvicorn.run(create_app(), host=args.host, port=args.port)
     elif args.command == "bench":
         print(json.dumps(run_benchmark(args.demo_dir), indent=2))
+    elif args.command == "build-references":
+        from praxiproof.eval.nvidia_sop import build_references
+
+        examples = build_references(args.data, args.videos, args.out, args.per_group)
+        print(json.dumps({x.label: list(x.sources) for x in examples}, indent=2))
+    elif args.command == "make-edits":
+        from praxiproof.eval.nvidia_sop import make_edits
+
+        print("\n".join(str(p) for p in make_edits(args.data, args.video, args.out)))
     elif args.command == "eval-sop":
         from praxiproof.eval.nvidia_sop import evaluate
         from praxiproof.llm import OllamaClient

@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "min_confidence")
+EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "reference_dir", "min_confidence")
 VIDEO_BACKENDS = ("local_vlm", "ddm_vlm", "nvidia_sop")
 
 
@@ -17,6 +17,7 @@ class Settings:
     video_backend: str
     sop_bp_url: str | None
     ddm_checkpoint: str | None
+    reference_dir: str | None
     ddm_image: str
     ddm_code_dir: str
     data_dir: Path
@@ -33,6 +34,7 @@ def get_settings() -> Settings:
         video_backend=os.environ.get("PRAXIPROOF_VIDEO_BACKEND", "local_vlm"),
         sop_bp_url=os.environ.get("PRAXIPROOF_SOP_BP_URL") or None,
         ddm_checkpoint=os.environ.get("PRAXIPROOF_DDM_CHECKPOINT") or None,
+        reference_dir=os.environ.get("PRAXIPROOF_REFERENCE_DIR") or None,
         ddm_image=os.environ.get("PRAXIPROOF_DDM_IMAGE", "praxiproof-ddm:26.08"),
         ddm_code_dir=os.environ.get("PRAXIPROOF_DDM_CODE_DIR", str(Path.home() / "ddm-train/ddm/DDM-Net")),
         data_dir=Path(os.environ.get("PRAXIPROOF_DATA_DIR", "data")).resolve(),
@@ -79,6 +81,11 @@ def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | Non
         if path and not Path(path).is_file():
             raise ValueError(f"ddm_checkpoint: file not found: {path}")
         clean["ddm_checkpoint"] = path
+    if "reference_dir" in clean:
+        path = (clean["reference_dir"] or "").strip() or None
+        if path and not (Path(path) / "references.json").is_file():
+            raise ValueError(f"reference_dir: no references.json in {path}")
+        clean["reference_dir"] = path
     if "sop_bp_url" in clean:
         url = (clean["sop_bp_url"] or "").strip() or None
         if url and not url.startswith(("http://", "https://")):

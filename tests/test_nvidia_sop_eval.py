@@ -1,10 +1,11 @@
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from praxiproof.eval.metrics import sequence_similarity
-from praxiproof.eval.nvidia_sop import VOCABULARY, evaluate, load_ground_truth
+from praxiproof.eval.nvidia_sop import VOCABULARY, build_references, edited_order, evaluate, load_ground_truth
 from praxiproof.ir.observation import Observation, ObservedEvent
 
 
@@ -65,3 +66,19 @@ def test_sequence_similarity():
     assert sequence_similarity(["a", "b", "c"], ["a", "b", "c"]) == 1.0
     assert sequence_similarity(["a", "c"], ["a", "b", "c"]) == 0.667
     assert sequence_similarity([], []) == 1.0
+
+
+def test_edits_drop_the_cover_or_move_power_supplies_before_fans():
+    # (timeline, action): non-SOP start, six fans, two power supplies, cover, non-SOP end
+    actions = [10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    chunks = [(i + 1, a, Path(f"{i + 1}_{a}")) for i, a in enumerate(actions)]
+    names = lambda edit: [p.name.split("_")[1] for p in edited_order(chunks, edit)]
+    assert names("compliant") == [str(a) for a in actions]
+    assert names("missing_cover") == ["10", "1", "2", "3", "4", "5", "6", "7", "8", "10"]
+    assert names("psu_before_fans") == ["10", "7", "8", "1", "2", "3", "4", "5", "6", "9", "10"]
+
+
+def test_reference_images_refuse_test_recordings(tmp_path):
+    (tmp_path / "test" / "Install_12").mkdir(parents=True)
+    with pytest.raises(ValueError, match="Install_12"):
+        build_references(tmp_path, ["Install_1", "Install_12"], tmp_path / "refs")

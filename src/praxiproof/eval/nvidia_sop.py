@@ -1,5 +1,7 @@
 import json
 import re
+import subprocess
+import tempfile
 import time
 from collections import Counter
 from pathlib import Path
@@ -9,7 +11,8 @@ from praxiproof.eval.metrics import boundary_errors, match_events, sequence_simi
 from praxiproof.ir.observation import Observation, ObservedEvent
 from praxiproof.ir.requirement import EventDef
 from praxiproof.video.backend import VideoBackend
-from praxiproof.video.frames import probe
+from praxiproof.video.frames import FFmpegError, frame_at, probe
+from praxiproof.video.references import ReferenceExample, save_references
 
 PROCEDURE = "Server fan, power supply and cover installation"
 CHUNK_NAME = re.compile(r"^(\d+)_(.+)_(\d+)_(\d+)\.mp4$", re.IGNORECASE)
@@ -20,6 +23,17 @@ VOCABULARY = [
     EventDef(label="psu_installed", description="A power supply is placed in its compartment and pressed in until the latch clicks"),
     EventDef(label="cover_installed", description="The server cover is placed on top of the server and the black latch is pressed to lock it"),
 ]
+
+
+# Reference groups: identical repeated actions share one set of example images. Non-SOP chunks (action 10) show idle
+# moments, including a server that is already closed, so the model learns that a finished state is not the cover step.
+REFERENCE_GROUPS = [
+    ("fan", range(1, 7), "a fan: a small dark square unit pressed down into one of the square slots in the middle of the chassis"),
+    ("power_supply", (7, 8), "a power supply: a long flat metal module slid lengthwise into the compartment at the left edge of the chassis"),
+    ("cover", (9,), "the server cover: a large flat metal lid over the open chassis, locked with the black latch in its centre"),
+    ("idle", (10,), "no step being carried out: hands away from the server or resting, whether it is open or already closed"),
+]
+EDITS = ("compliant", "missing_cover", "psu_before_fans")
 
 
 def chunk_dir(root: Path, video: str) -> Path:
@@ -34,14 +48,19 @@ def raw_video(root: Path, video: str) -> Path:
     return next(p for p in (root / "raw").iterdir() if p.stem == video)
 
 
-def load_ground_truth(root: Path, video: str) -> Observation:
+def action_chunks(root: Path, video: str) -> list[tuple[int, int, Path]]:
+    """(timeline position, action id, path) for each chunk of a recording, in timeline order."""
     chunks = []
     for path in chunk_dir(root, video).glob("*.mp4"):
         match = CHUNK_NAME.match(path.name)
         if match and match.group(2) == video:
             chunks.append((int(match.group(4)), int(match.group(1)), path))
+    return sorted(chunks)
+
+
+def load_ground_truth(root: Path, video: str) -> Observation:
     events, cursor = [], 0.0
-    for timeline, action, path in sorted(chunks):
+    for timeline, action, path in action_chunks(root, video):
         duration = probe(path).duration
         if action in ACTION_LABELS:
             events.append(
@@ -112,3 +131,64 @@ def evaluate(root: Path, videos: list[str], backend: VideoBackend, out: Path | N
     if out:
         out.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
+
+
+def build_references(root: Path, videos: list[str], out: Path, per_group: int = 3, position: float = 0.6) -> list[ReferenceExample]:
+    """Take example frames of each action from training recordings; never from the recordings used for testing."""
+    held_out = {p.name for p in (root / "test").iterdir() if p.is_dir()} if (root / "test").is_dir() else set()
+    if leaked := sorted(set(videos) & held_out):
+        raise ValueError(f"reference images must not come from test recordings: {leaked}")
+    chunks = {video: action_chunks(root, video) for video in videos}
+    examples = []
+    for group, (label, actions, description) in enumerate(REFERENCE_GROUPS):
+        images, sources = [], []
+        for i, video in enumerate(videos):
+            if len(images) == per_group:
+                break
+            candidates = [(t, a, p) for t, a, p in chunks[video] if a in actions]
+            if not candidates:
+                continue
+            _, action, path = candidates[(i + group) % len(candidates)]
+            at = probe(path).duration * position
+            images.append(frame_at(path, at))
+            sources.append(f"{video} action {action} at {at:.1f}s into the chunk")
+        examples.append(ReferenceExample(label=label, description=description, images=tuple(images), sources=tuple(sources)))
+    note = f"Frames from the NVIDIA sop-server-fan-installation-data training recordings {', '.join(videos)}."
+    save_references(out, examples, note)
+    return examples
+
+
+def edited_order(chunks: list[tuple[int, int, Path]], edit: str) -> list[Path]:
+    if edit == "compliant":
+        return [p for _, _, p in chunks]
+    if edit == "missing_cover":
+        return [p for _, a, p in chunks if a != 9]
+    if edit == "psu_before_fans":
+        psus = [p for _, a, p in chunks if a in (7, 8)]
+        rest = [(a, p) for _, a, p in chunks if a not in (7, 8)]
+        first_fan = next(i for i, (a, _) in enumerate(rest) if a in range(1, 7))
+        paths = [p for _, p in rest]
+        return paths[:first_fan] + psus + paths[first_fan:]
+    raise ValueError(f"unknown edit {edit}; choose from {EDITS}")
+
+
+def make_edits(root: Path, video: str, out: Path) -> list[Path]:
+    """Re-assemble a recording's action chunks into a compliant copy and copies with a missing or reordered step."""
+    chunks = action_chunks(root, video)
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for edit in EDITS:
+        target = out / f"{video}_{edit}.mp4"
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as listing:
+            listing.writelines(f"file '{p.resolve()}'\n" for p in edited_order(chunks, edit))
+        result = subprocess.run(
+            ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", listing.name,
+             "-c:v", "libx264", "-crf", "20", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-an", str(target)],
+            capture_output=True,
+            text=True,
+        )
+        Path(listing.name).unlink()
+        if result.returncode != 0:
+            raise FFmpegError(f"could not build {target.name}: {result.stderr.strip()[:300]}")
+        written.append(target)
+    return written

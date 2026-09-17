@@ -61,6 +61,7 @@ def settings(tmp_path: Path) -> Settings:
         video_backend="local_vlm",
         sop_bp_url=None,
         ddm_checkpoint=None,
+        reference_dir=None,
         ddm_image="praxiproof-ddm:test",
         ddm_code_dir="/tmp/ddm-code",
         data_dir=tmp_path / "data",
