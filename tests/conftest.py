@@ -55,6 +55,9 @@ def observation_fixture():
 def settings(tmp_path: Path) -> Settings:
     return Settings(
         ollama_url="http://127.0.0.1:9",
+        llm_provider="ollama",
+        openai_base_url=None,
+        openai_api_key=None,
         llm_model="fake-llm",
         vlm_model="fake-vlm",
         vlm_thinking=False,

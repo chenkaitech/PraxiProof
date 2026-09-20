@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from praxiproof import __version__
 from praxiproof.config import Settings, get_settings, load_overrides
-from praxiproof.llm import LLM, LLMError, OllamaClient
+from praxiproof.llm import LLM, LLMError, build_llm
 from praxiproof.runtime.compliance_agent import ComplianceAgent
 from praxiproof.service import PraxiProof
 from praxiproof.store import NotFound
@@ -71,7 +71,7 @@ def create_app(
     demo_dir: Path | None = None,
 ) -> FastAPI:
     settings = load_overrides(settings or get_settings())
-    llm = llm or OllamaClient(settings.ollama_url, settings.keep_alive)
+    llm = llm or build_llm(settings)
     core = PraxiProof(settings, llm, backend_factory=backend_factory)
     agent = ComplianceAgent(core)
     demo_dir = demo_dir or Path(os.environ.get("PRAXIPROOF_DEMO_DIR", DEFAULT_DEMO_DIR))
@@ -136,6 +136,8 @@ def create_app(
             "reference_dir": s.reference_dir,
             "min_confidence": s.min_confidence,
             "ollama_url": s.ollama_url,
+            "llm_provider": s.llm_provider,
+            "openai_base_url": s.openai_base_url,
         }
 
     @app.get("/api/settings")

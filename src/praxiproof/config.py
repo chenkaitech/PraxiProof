@@ -6,11 +6,15 @@ from typing import Any
 
 EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "reference_dir", "min_confidence")
 VIDEO_BACKENDS = ("local_vlm", "ddm_vlm", "nvidia_sop")
+LLM_PROVIDERS = ("ollama", "openai")
 
 
 @dataclass(frozen=True)
 class Settings:
     ollama_url: str
+    llm_provider: str
+    openai_base_url: str | None
+    openai_api_key: str | None
     llm_model: str
     vlm_model: str
     vlm_thinking: bool
@@ -26,8 +30,14 @@ class Settings:
 
 
 def get_settings() -> Settings:
+    llm_provider = os.environ.get("PRAXIPROOF_LLM_PROVIDER", "ollama")
+    if llm_provider not in LLM_PROVIDERS:
+        raise ValueError(f"PRAXIPROOF_LLM_PROVIDER must be one of {LLM_PROVIDERS}, got {llm_provider!r}")
     return Settings(
         ollama_url=os.environ.get("PRAXIPROOF_OLLAMA_URL", "http://127.0.0.1:11434"),
+        llm_provider=llm_provider,
+        openai_base_url=os.environ.get("PRAXIPROOF_OPENAI_BASE_URL") or None,
+        openai_api_key=os.environ.get("PRAXIPROOF_OPENAI_API_KEY") or None,
         llm_model=os.environ.get("PRAXIPROOF_LLM_MODEL", "qwen3.6:35b-a3b-q8_0"),
         vlm_model=os.environ.get("PRAXIPROOF_VLM_MODEL", "gemma4:31b"),
         vlm_thinking=os.environ.get("PRAXIPROOF_VLM_THINKING", "false").lower() in ("1", "true", "yes"),

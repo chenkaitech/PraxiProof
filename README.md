@@ -61,6 +61,21 @@ deploy/deploy.sh --skip-tests    # 跳过测试,加速迭代
 
 `ddm_vlm` 后端的 DDM-Net 边界检测模型跑在独立的 GPU Docker 容器里(`deploy/ddm/Dockerfile`),通过 `PRAXIPROOF_DDM_CHECKPOINT` 指定权重;当前使用的是 NVIDIA SOP training blueprint 提供的通用预训练权重,在自有 demo 录像上做微调(`sop-ddm-finetuning-plugin`/`sop-cr-finetuning-plugin`)是路线图中的下一步。
 
+### LLM/VLM provider:本地 Ollama 或任意 OpenAI 兼容端点
+
+`src/praxiproof/llm.py` 的 `LLM` 是一个只有 `chat`/`chat_json` 两个方法的 Protocol,`OllamaClient` 之外新增了 `OpenAICompatibleClient`——只要是能说 `/v1/chat/completions` 的服务,不管是云端(比如 StepFun 阶跃星辰开放平台 `https://api.stepfun.com/v1`)还是本地起的 OpenAI 兼容服务(vLLM/llama.cpp 等),用的是同一个客户端,区别只在 `base_url`/`api_key`。工具调用(tool_calls)走的就是 OpenAI 原生格式,`ComplianceAgent` 不需要为不同 provider 写分支。
+
+用哪个 provider 由环境变量在启动时决定(和 `ollama_url` 一样是进程级配置,不通过 `/api/settings` 热切换,`api_key` 更是只从环境变量读取、绝不写入 `data/settings.json` 或经 API 暴露):
+
+```bash
+export PRAXIPROOF_LLM_PROVIDER=openai        # 默认 ollama
+export PRAXIPROOF_OPENAI_BASE_URL=https://api.stepfun.com/v1
+export PRAXIPROOF_OPENAI_API_KEY=sk-...
+export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
+```
+
+当前仓库里还没有真实 StepFun API key 去跑通端到端调用,这条链路的正确性靠 `tests/test_llm_openai.py`(mock HTTP 层验证 payload/response 解析)和已有的 `chat`/`chat_json` 消费方(`ComplianceAgent`、`constraints/compiler.py`、视频后端)保证;接入真实 StepFun 模型只需要设置上面三个环境变量,不需要改代码。
+
 ## Agent Skills 设计
 
 `compiler/agent_skill.py` 把每次验证结果编译成一份 Skill 包(`demo/sample-skill/dgx-h100-front-fan-module-replacement/` 是一份用 demo 数据生成的真实样例),设计上对齐 NVIDIA Verified Skills 规范的关键项:
@@ -75,14 +90,14 @@ deploy/deploy.sh --skip-tests    # 跳过测试,加速迭代
 
 ## 技术栈
 
-- **LLM/VLM 推理**:本地 Ollama(手册编译用 LLM,视频理解用 VLM),模型可在运行时热切换。
+- **LLM/VLM 推理**:本地 Ollama,或任意 OpenAI 兼容端点(`PRAXIPROOF_LLM_PROVIDER=openai`,见上文),手册编译用 LLM、视频理解用 VLM,模型名可在运行时热切换。
 - **NVIDIA 技术栈**:DDM-Net 时序边界检测(来自 `NVIDIA/sop-monitoring-blueprints` 的 training blueprint),GPU 推理容器化部署;`nvidia_sop` 后端预留了对接官方 `sop-inference-bp` 推理服务的接口。
 - **Web**:FastAPI + 内置静态双语前端。
-- **StepFun 阶跃星辰模型**:尚未接入,是当前最大的缺口,计划作为 LLM/VLM 后端的可选项之一接入(见下文路线图)。
+- **StepFun 阶跃星辰模型**:通过上面的 OpenAI 兼容 provider 接入——代码/测试已就绪,但本仓库目前没有可用的 StepFun API key 去实跑,还未选定并验证具体模型名(见下文路线图)。
 
 ## 已知限制 / Roadmap
 
-- [ ] 接入至少一个 StepFun 阶跃星辰模型作为可选 LLM 或 VLM 后端。
+- [ ] 用真实 StepFun API key 跑通一次 `PRAXIPROOF_LLM_PROVIDER=openai` 端到端调用,把验证过的模型名(如 `step-2-16k` 之类,以官方最新命名为准)写进本文档和默认配置。
 - [ ] 用 `sop-ddm-finetuning-plugin` 在自有 demo 录像上微调 DDM-Net,而不是用通用预训练权重。
 - [ ] `BENCHMARK.md` 补上真实 Ollama 环境下的 Efficiency 与"带/不带 skill"对比。
 - [ ] 录制 Demo 演示视频、撰写黑客松十日谈征文、补团队合影。
