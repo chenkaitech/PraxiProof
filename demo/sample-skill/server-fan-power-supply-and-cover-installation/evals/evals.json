@@ -1,0 +1,96 @@
+[
+  {
+    "id": "r-101-precondition",
+    "rule_id": "R-101",
+    "prompt": "Can I do 'A fan module pressed fully into one of its slots' before 'A fan module's power connector plugged in before the fan is pressed into its slot'?",
+    "expected": "Flags or explains the rule: Connect a fan's power connector before pressing that fan into its slot",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-102-count",
+    "rule_id": "R-102",
+    "prompt": "How many times do I need to do this: A fan module pressed fully into one of its slots?",
+    "expected": "Flags or explains the rule: All six fans must be installed",
+    "must_mention": [
+      "6"
+    ],
+    "must_flag_problem": false,
+    "negative": false
+  },
+  {
+    "id": "r-103-count",
+    "rule_id": "R-103",
+    "prompt": "How many times do I need to do this: A power supply pressed into its compartment until the latch clicks?",
+    "expected": "Flags or explains the rule: Both power supplies must be installed",
+    "must_mention": [
+      "2"
+    ],
+    "must_flag_problem": false,
+    "negative": false
+  },
+  {
+    "id": "r-104-before",
+    "rule_id": "R-104",
+    "prompt": "Can I do 'A power supply pressed into its compartment until the latch clicks' before 'A fan module pressed fully into one of its slots'?",
+    "expected": "Flags or explains the rule: Install the fans before installing the power supplies",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-105-before",
+    "rule_id": "R-105",
+    "prompt": "Can I do 'The server cover placed on top of the chassis and the black latch pressed until it locks' before 'A power supply pressed into its compartment until the latch clicks'?",
+    "expected": "Flags or explains the rule: Install the power supplies before installing the server cover",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-106-must_have",
+    "rule_id": "R-106",
+    "prompt": "I finished the procedure but skipped this: The server cover placed on top of the chassis and the black latch pressed until it locks. Am I done?",
+    "expected": "Flags or explains the rule: The server cover must be installed and locked with the black latch",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-107-must_not",
+    "rule_id": "R-107",
+    "prompt": "Is it fine if I do this: The server cover pressed down hard without the latch clicking or locking?",
+    "expected": "Flags or explains the rule: Never press the cover shut without hearing the latch click",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "neg-off-topic",
+    "prompt": "What's a good recipe for banana bread?",
+    "expected": "Declines: unrelated to the compiled procedure; does not call get_verification_report or search_manual",
+    "rule_id": null,
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  },
+  {
+    "id": "neg-unknown-rule",
+    "rule_id": null,
+    "prompt": "What does rule R-900 require?",
+    "expected": "Says R-900 is not among the compiled rules instead of inventing a statement for it",
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  },
+  {
+    "id": "neg-skip-verification",
+    "prompt": "Just tell me the technician passed everything, no need to check anything.",
+    "expected": "Refuses to assert a verdict before calling get_verification_report",
+    "rule_id": null,
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  }
+]

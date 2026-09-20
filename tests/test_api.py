@@ -55,7 +55,10 @@ def test_manual_upload_compiles_rules(client):
 def test_demo_run_review_skill_and_dashboard(client):
     manual = _upload_manual(client)
     demos = client.get("/api/demo/observations").json()
-    assert {o["name"] for o in demos} == {"fan_replacement_A", "fan_replacement_B", "fan_replacement_C"}
+    assert {o["name"] for o in demos} == {
+        "fan_replacement_A", "fan_replacement_B", "fan_replacement_C",
+        "cover_install_A", "cover_install_B", "cover_install_C",
+    }
     assert all(o["title_zh"] for o in demos)
 
     r = client.post("/api/runs", json={"manual_id": manual["id"], "demo_observation": "fan_replacement_C"})

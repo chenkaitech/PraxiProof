@@ -1,0 +1,155 @@
+{
+  "source_id": "DEMO-MANUAL",
+  "procedure": "Server Fan, Power Supply and Cover Installation",
+  "events": [
+    {
+      "label": "fan_connected",
+      "description": "A fan module's power connector plugged in before the fan is pressed into its slot"
+    },
+    {
+      "label": "fan_installed",
+      "description": "A fan module pressed fully into one of its slots"
+    },
+    {
+      "label": "psu_installed",
+      "description": "A power supply pressed into its compartment until the latch clicks"
+    },
+    {
+      "label": "cover_installed",
+      "description": "The server cover placed on top of the chassis and the black latch pressed until it locks"
+    },
+    {
+      "label": "cover_forced_without_latch",
+      "description": "The server cover pressed down hard without the latch clicking or locking"
+    }
+  ],
+  "requirements": [
+    {
+      "rule_id": "R-101",
+      "statement": "Connect a fan's power connector before pressing that fan into its slot",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "fan_connected",
+        "b": "fan_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B5"
+      ]
+    },
+    {
+      "rule_id": "R-102",
+      "statement": "All six fans must be installed",
+      "constraint": {
+        "type": "COUNT",
+        "event": "fan_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": 6
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B10"
+      ]
+    },
+    {
+      "rule_id": "R-103",
+      "statement": "Both power supplies must be installed",
+      "constraint": {
+        "type": "COUNT",
+        "event": "psu_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": 2
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B11"
+      ]
+    },
+    {
+      "rule_id": "R-104",
+      "statement": "Install the fans before installing the power supplies",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "fan_installed",
+        "b": "psu_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B12"
+      ]
+    },
+    {
+      "rule_id": "R-105",
+      "statement": "Install the power supplies before installing the server cover",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "psu_installed",
+        "b": "cover_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B13"
+      ]
+    },
+    {
+      "rule_id": "R-106",
+      "statement": "The server cover must be installed and locked with the black latch",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "cover_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B14"
+      ]
+    },
+    {
+      "rule_id": "R-107",
+      "statement": "Never press the cover shut without hearing the latch click",
+      "constraint": {
+        "type": "MUST_NOT",
+        "event": "cover_forced_without_latch",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "safety",
+      "severity": "critical",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B16"
+      ]
+    }
+  ],
+  "compiler_model": "reference"
+}

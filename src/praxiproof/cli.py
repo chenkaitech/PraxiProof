@@ -6,6 +6,14 @@ from pathlib import Path
 from praxiproof.api.app import DEFAULT_DEMO_DIR
 from praxiproof.config import get_settings, load_overrides
 
+# Each entry is a distinct compiled procedure + its hand-labeled demo recordings, so `bench`
+# never scores an observation fixture against the wrong ruleset. Two procedures on purpose:
+# server-fan-psu-cover exercises COUNT and MUST_NOT, which dgx-h100-front-fan never triggers.
+DEMO_PROCEDURES: dict[str, list[str]] = {
+    "dgx-h100-front-fan.json": ["fan_replacement_A", "fan_replacement_B", "fan_replacement_C"],
+    "server-fan-psu-cover.json": ["cover_install_A", "cover_install_B", "cover_install_C"],
+}
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="praxiproof")
@@ -17,6 +25,7 @@ def main() -> None:
 
     bench = sub.add_parser("bench", help="score the verification engine on the demo reference set")
     bench.add_argument("--demo-dir", type=Path, default=DEFAULT_DEMO_DIR)
+    bench.add_argument("--requirements", default="dgx-h100-front-fan.json", choices=sorted(DEMO_PROCEDURES), help="which demo procedure to score")
     bench.add_argument("--skill-md", type=Path, help="also render a NVIDIA-Verified-Skill-style BENCHMARK.md to this path")
 
     compile_cmd = sub.add_parser("compile", help="compile a manual into constraints with the configured LLM")
@@ -48,14 +57,13 @@ def main() -> None:
 
         uvicorn.run(create_app(), host=args.host, port=args.port)
     elif args.command == "bench":
-        result = run_benchmark(args.demo_dir)
+        result = run_benchmark(args.demo_dir, args.requirements)
         print(json.dumps(result, indent=2))
         if args.skill_md:
             from praxiproof.compiler.benchmark import render_benchmark_md
 
-            args.skill_md.write_text(
-                render_benchmark_md(result, "DGX H100 front fan module replacement — PraxiProof demo skill"), encoding="utf-8"
-            )
+            title = f"{result['summary']['procedure']} — PraxiProof demo skill"
+            args.skill_md.write_text(render_benchmark_md(result, title), encoding="utf-8")
     elif args.command == "build-references":
         from praxiproof.eval.nvidia_sop import build_references
 
@@ -84,7 +92,7 @@ def main() -> None:
         print(result.model_dump_json(indent=2, exclude={"evidence"}))
 
 
-def run_benchmark(demo_dir: Path) -> dict:
+def run_benchmark(demo_dir: Path, requirements_file: str = "dgx-h100-front-fan.json", videos: list[str] | None = None) -> dict:
     from praxiproof.constraints.engine import evaluate
     from praxiproof.demo import load_observation_fixture, load_reference_requirements
     from praxiproof.eval.metrics import citation_accuracy, verification_accuracy
@@ -92,14 +100,15 @@ def run_benchmark(demo_dir: Path) -> dict:
     from praxiproof.service import observation_with_evidence
     from praxiproof.verifier.evidence import traceability
 
-    requirements, _, manual_evidence, quotes = load_reference_requirements(demo_dir / "requirements" / "dgx-h100-front-fan.json", demo_dir)
+    videos = videos if videos is not None else DEMO_PROCEDURES[requirements_file]
+    requirements, _, manual_evidence, quotes = load_reference_requirements(demo_dir / "requirements" / requirements_file, demo_dir)
     results, totals = {}, {"correct": 0, "compared": 0}
     per_status: dict[str, list[bool]] = {s.value: [] for s in Status}
-    for path in sorted((demo_dir / "observations").glob("*.json")):
-        fixture, _ = load_observation_fixture(path)
-        observation, video_evidence = observation_with_evidence(fixture["observation"], path.stem)
+    for stem in videos:
+        fixture, _ = load_observation_fixture(demo_dir / "observations" / f"{stem}.json")
+        observation, video_evidence = observation_with_evidence(fixture["observation"], stem)
         report = VerificationReport(
-            run_id=path.stem,
+            run_id=stem,
             manual_id=requirements.source_id,
             video_id=None,
             procedure=requirements.procedure,
@@ -108,7 +117,7 @@ def run_benchmark(demo_dir: Path) -> dict:
         evidence = {e.evidence_id: e for e in manual_evidence + video_evidence}
         accuracy = verification_accuracy(report, fixture["expected"])
         ratio, issues = traceability(report, evidence)
-        results[path.stem] = accuracy | {
+        results[stem] = accuracy | {
             "citation_accuracy": citation_accuracy(report, evidence, quotes),
             "evidence_traceability": round(ratio, 3),
             "traceability_issues": issues,
@@ -119,6 +128,7 @@ def run_benchmark(demo_dir: Path) -> dict:
             totals["compared"] += 1
             totals["correct"] += actual.get(rule) == status
     summary = {
+        "procedure": requirements.procedure,
         "verification_accuracy": round(totals["correct"] / totals["compared"], 3) if totals["compared"] else 0.0,
         **{f"{s.lower()}_recall": round(sum(v) / len(v), 3) for s, v in per_status.items() if v},
     }

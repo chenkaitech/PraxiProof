@@ -35,12 +35,16 @@ def slugify(text: str, limit: int = 64) -> str:
 
 
 def build_skill_ir(requirements: RequirementSet, report: VerificationReport, observation: Observation | None) -> SkillIR:
+    # A MUST_NOT event names an anti-pattern, not a step to perform — never list it in "## Procedure".
+    prohibited = {r.constraint.event for r in requirements.requirements if r.constraint.type == ConstraintType.MUST_NOT}
+    procedure_events = [e for e in requirements.events if e.label not in prohibited]
+
     first_seen: dict[str, float] = {}
     if observation:
         for event in observation.sorted_events():
             first_seen.setdefault(event.label, event.start)
-    seen_in_time_order = iter(sorted((e for e in requirements.events if e.label in first_seen), key=lambda e: first_seen[e.label]))
-    ordered = [next(seen_in_time_order) if e.label in first_seen else e for e in requirements.events]
+    seen_in_time_order = iter(sorted((e for e in procedure_events if e.label in first_seen), key=lambda e: first_seen[e.label]))
+    ordered = [next(seen_in_time_order) if e.label in first_seen else e for e in procedure_events]
 
     def rule(req) -> SkillRule:
         return SkillRule(

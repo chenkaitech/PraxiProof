@@ -1,0 +1,38 @@
+{
+  "title": "Video A — compliant fan/PSU/cover installation",
+  "title_zh": "视频 A — 合规的风扇/电源/机盖安装",
+  "video_name": "cover_install_A.mp4",
+  "expected": {
+    "R-101": "PASS",
+    "R-102": "PASS",
+    "R-103": "PASS",
+    "R-104": "PASS",
+    "R-105": "PASS",
+    "R-106": "PASS",
+    "R-107": "PASS"
+  },
+  "observation": {
+    "source_id": "cover_install_A",
+    "duration": 100.0,
+    "complete": true,
+    "backend": "fixture",
+    "model": null,
+    "events": [
+      {"event_id": "O-001", "label": "fan_connected", "description": "Fan 1 connector plugged in", "start": 5.0, "end": 7.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-002", "label": "fan_installed", "description": "Fan 1 pressed into its slot", "start": 8.0, "end": 11.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-003", "label": "fan_connected", "description": "Fan 2 connector plugged in", "start": 14.0, "end": 16.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-004", "label": "fan_installed", "description": "Fan 2 pressed into its slot", "start": 17.0, "end": 20.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-005", "label": "fan_connected", "description": "Fan 3 connector plugged in", "start": 23.0, "end": 25.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-006", "label": "fan_installed", "description": "Fan 3 pressed into its slot", "start": 26.0, "end": 29.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-007", "label": "fan_connected", "description": "Fan 4 connector plugged in", "start": 32.0, "end": 34.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-008", "label": "fan_installed", "description": "Fan 4 pressed into its slot", "start": 35.0, "end": 38.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-009", "label": "fan_connected", "description": "Fan 5 connector plugged in", "start": 41.0, "end": 43.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-010", "label": "fan_installed", "description": "Fan 5 pressed into its slot", "start": 44.0, "end": 47.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-011", "label": "fan_connected", "description": "Fan 6 connector plugged in", "start": 50.0, "end": 52.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-012", "label": "fan_installed", "description": "Fan 6 pressed into its slot", "start": 53.0, "end": 56.0, "time_uncertainty": 0.5, "confidence": 0.92},
+      {"event_id": "O-013", "label": "psu_installed", "description": "First power supply pressed in until the latch clicks", "start": 62.0, "end": 68.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-014", "label": "psu_installed", "description": "Second power supply pressed in until the latch clicks", "start": 72.0, "end": 78.0, "time_uncertainty": 0.5, "confidence": 0.9},
+      {"event_id": "O-015", "label": "cover_installed", "description": "Cover placed on top and the black latch pressed until it locks", "start": 85.0, "end": 95.0, "time_uncertainty": 0.5, "confidence": 0.93}
+    ]
+  }
+}

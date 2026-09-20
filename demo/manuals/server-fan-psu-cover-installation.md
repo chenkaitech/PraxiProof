@@ -20,3 +20,7 @@ This procedure installs six fans, two power supplies and the server cover. Perfo
 - Install the fans before installing the power supplies.
 - Install the power supplies before installing the server cover.
 - The server cover must be installed and locked with the black latch.
+
+## Safety
+
+- Never press the cover shut without hearing the latch click. Forcing the cover down without the latch engaging can crack the latch tab and leaves the cover unsecured.

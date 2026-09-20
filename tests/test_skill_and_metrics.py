@@ -5,6 +5,7 @@ import zipfile
 
 from praxiproof.compiler.agent_skill import build_skill_ir, slugify, write_skill, zip_dir
 from praxiproof.constraints.engine import evaluate
+from praxiproof.demo import load_observation_fixture, load_reference_requirements
 from praxiproof.eval.metrics import citation_accuracy, event_detection, temporal_iou, verification_accuracy
 from praxiproof.ir.observation import ObservedEvent
 from praxiproof.ir.verification import VerificationReport
@@ -58,6 +59,21 @@ def test_skill_package(tmp_path, reference, observation_fixture):
     assert f"{root.name}/SKILL.md" in names
     assert f"{root.name}/references/skill-card.md" in names
     assert f"{root.name}/evals/evals.json" in names
+
+
+def test_build_skill_ir_excludes_must_not_events_from_procedure_steps(demo_dir):
+    requirement_set, _, manual_evidence, _ = load_reference_requirements(demo_dir / "requirements" / "server-fan-psu-cover.json", demo_dir)
+    fixture, _ = load_observation_fixture(demo_dir / "observations" / "cover_install_C.json")
+    observation, video_evidence = observation_with_evidence(fixture["observation"], "V-002")
+    report = VerificationReport(
+        run_id="V-002", manual_id=requirement_set.source_id, video_id=None, procedure=requirement_set.procedure,
+        verdicts=evaluate(requirement_set, observation),
+    )
+    skill = build_skill_ir(requirement_set, report, observation)
+
+    assert "cover_forced_without_latch" not in [s.event for s in skill.steps]
+    assert {s.event for s in skill.steps} == {"fan_connected", "fan_installed", "psu_installed", "cover_installed"}
+    assert any(r.constraint == "MUST_NOT(cover_forced_without_latch)" for r in skill.rules)
 
 
 def test_slugify():

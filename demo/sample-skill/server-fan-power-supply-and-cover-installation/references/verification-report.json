@@ -1,0 +1,271 @@
+{
+  "run_id": "DEMO-C2",
+  "manual_id": "DEMO-MANUAL",
+  "video_id": null,
+  "procedure": "Server Fan, Power Supply and Cover Installation",
+  "verdicts": [
+    {
+      "rule_id": "R-101",
+      "status": "PASS",
+      "reason": "fan_connected established before fan_installed",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "fan_connected",
+        "b": "fan_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Connect a fan's power connector before pressing that fan into its slot",
+      "observed_event_ids": [
+        "O-001",
+        "O-002"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B5"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-C2-O-001",
+        "EV-DEMO-C2-O-002"
+      ],
+      "reason_code": "precondition.pass",
+      "reason_params": {
+        "a": "fan_connected",
+        "b": "fan_installed"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-102",
+      "status": "PASS",
+      "reason": "fan_installed observed 6 times (≥ 6)",
+      "constraint": {
+        "type": "COUNT",
+        "event": "fan_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": 6
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "All six fans must be installed",
+      "observed_event_ids": [
+        "O-002",
+        "O-004",
+        "O-006",
+        "O-008",
+        "O-010",
+        "O-012"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B10"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-C2-O-002",
+        "EV-DEMO-C2-O-004",
+        "EV-DEMO-C2-O-006",
+        "EV-DEMO-C2-O-008",
+        "EV-DEMO-C2-O-010",
+        "EV-DEMO-C2-O-012"
+      ],
+      "reason_code": "count.pass",
+      "reason_params": {
+        "event": "fan_installed",
+        "count": "6",
+        "minimum": "6",
+        "weak": "0"
+      },
+      "measured": {
+        "observed_count": 6,
+        "required_count": 6
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-103",
+      "status": "PASS",
+      "reason": "psu_installed observed 2 times (≥ 2)",
+      "constraint": {
+        "type": "COUNT",
+        "event": "psu_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": 2
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Both power supplies must be installed",
+      "observed_event_ids": [
+        "O-013",
+        "O-014"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B11"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-C2-O-013",
+        "EV-DEMO-C2-O-014"
+      ],
+      "reason_code": "count.pass",
+      "reason_params": {
+        "event": "psu_installed",
+        "count": "2",
+        "minimum": "2",
+        "weak": "0"
+      },
+      "measured": {
+        "observed_count": 2,
+        "required_count": 2
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-104",
+      "status": "PASS",
+      "reason": "fan_installed precedes psu_installed",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "fan_installed",
+        "b": "psu_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Install the fans before installing the power supplies",
+      "observed_event_ids": [
+        "O-002",
+        "O-013"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B12"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-C2-O-002",
+        "EV-DEMO-C2-O-013"
+      ],
+      "reason_code": "order.pass",
+      "reason_params": {
+        "earlier": "fan_installed",
+        "later": "psu_installed"
+      },
+      "measured": {
+        "gap_seconds": 54.0
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-105",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "reason": "cover_installed was not observed; cannot check psu_installed before cover_installed",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "psu_installed",
+        "b": "cover_installed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Install the power supplies before installing the server cover",
+      "observed_event_ids": [],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B13"
+      ],
+      "observation_evidence_ids": [],
+      "reason_code": "unseen.insufficient",
+      "reason_params": {
+        "events": "cover_installed",
+        "context": "ctx.cannot_before",
+        "a": "psu_installed",
+        "b": "cover_installed"
+      },
+      "measured": null,
+      "needed_evidence": "Video coverage that includes: cover_installed",
+      "needed_code": "needed.coverage",
+      "review": null
+    },
+    {
+      "rule_id": "R-106",
+      "status": "VIOLATION",
+      "reason": "cover_installed was not observed anywhere in the video; the step is mandatory",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "cover_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "The server cover must be installed and locked with the black latch",
+      "observed_event_ids": [],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B14"
+      ],
+      "observation_evidence_ids": [],
+      "reason_code": "unseen.violation",
+      "reason_params": {
+        "events": "cover_installed",
+        "context": "ctx.mandatory",
+        "a": "",
+        "b": ""
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-107",
+      "status": "VIOLATION",
+      "reason": "prohibited action cover_forced_without_latch observed",
+      "constraint": {
+        "type": "MUST_NOT",
+        "event": "cover_forced_without_latch",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "safety",
+      "severity": "critical",
+      "statement": "Never press the cover shut without hearing the latch click",
+      "observed_event_ids": [
+        "O-015"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B16"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-C2-O-015"
+      ],
+      "reason_code": "must_not.violation",
+      "reason_params": {
+        "event": "cover_forced_without_latch"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    }
+  ],
+  "alignment": [],
+  "created_at": "2026-09-20T12:34:17.986827Z"
+}

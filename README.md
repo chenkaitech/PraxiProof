@@ -16,6 +16,23 @@ PraxiProof 解决的是工业/数据中心运维里一个具体的问题:操作�
 
 核心亮点是**证据链闭环**:从手册引用、视频时间戳、到最终 verdict,每一步都可追溯,拒绝"黑箱裁决"。这也是为什么验证逻辑本身是确定性代码而不是二次调用 LLM——LLM 只负责"看/读","判断规则是否满足"永远是可复现的代码路径。
 
+## 两个独立 demo 场景:流水线不是围着一份手册硬编码的
+
+`demo/` 下有两套完全独立的手册+规则+录像,证明这套流水线换一份手册就能重新编译、重新验证,而不是针对某一份 demo 数据写死的脚本:
+
+| | 手册 | 约束类型覆盖 | 生成的 Skill 包 |
+|---|---|---|---|
+| 场景一 | `demo/manuals/dgx-h100-front-fan-replacement.html` | `PRECONDITION`/`BEFORE`/`AFTER`/`MAX_INTERVAL`/`MUST_HAVE` | `demo/sample-skill/dgx-h100-front-fan-module-replacement/` |
+| 场景二 | `demo/manuals/server-fan-psu-cover-installation.md` | `PRECONDITION`/`BEFORE`/**`COUNT`**/`MUST_HAVE`/**`MUST_NOT`** | `demo/sample-skill/server-fan-power-supply-and-cover-installation/` |
+
+场景二特意选了场景一完全没触发过的两种约束——"六个风扇必须都装上"(`COUNT`)和"机盖不能在没听到卡扣声的情况下被强行压下"(`MUST_NOT`),外加一段真实拍到的违规录像(`cover_install_C`:六个风扇和两个电源都装对了,但机盖被强行压下、卡扣没锁上)。跑一下就能看到两条规则同时报 VIOLATION,而且原因各不相同:
+
+```bash
+uv run praxiproof bench --demo-dir demo --requirements server-fan-psu-cover.json
+```
+
+两个场景各自的 `BENCHMARK.md` 都是用真实数据跑出来的(`praxiproof bench --requirements <file> --skill-md <path>`),不是复制粘贴场景一的数字。`tests/test_benchmark.py` 里有回归测试,保证场景二的录像永远不会被错误地拿场景一的规则去打分。
+
 ## 系统架构
 
 ```
@@ -81,7 +98,7 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 
 ## Agent Skills 设计
 
-`compiler/agent_skill.py` 把每次验证结果编译成一份 Skill 包(`demo/sample-skill/dgx-h100-front-fan-module-replacement/` 是一份用 demo 数据生成的真实样例),设计上对齐 NVIDIA Verified Skills 规范的关键项:
+`compiler/agent_skill.py` 把每次验证结果编译成一份 Skill 包(`demo/sample-skill/` 下两个子目录分别对应上面两个 demo 场景的真实生成样例),设计上对齐 NVIDIA Verified Skills 规范的关键项:
 
 - **窄触发、强路由**:`SKILL.md` 的 frontmatter `description` 明确写清楚"什么时候该用这个 skill",而不是把整本手册塞进去。
 - **前置证据**:`## Rules that must hold` 每一条都带手册引用,`## Deviations seen in practice` 只列真实观测到的偏差,不臆测。
