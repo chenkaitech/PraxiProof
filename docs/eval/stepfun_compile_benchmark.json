@@ -1,0 +1,12 @@
+{
+  "note": "Single runs on 2026-09-21 compiling demo/manuals/dgx-h100-front-fan-replacement.html via https://api.stepfun.com/step_plan/v1. Latency and rule counts vary run to run; treat as indicative, not a benchmark.",
+  "manual": "DGX H100 front fan replacement (8 events, 1 timing rule of 30s expected)",
+  "runs": [
+    {"model": "step-router-v1", "seconds": 42, "rules": 15, "rejected": 0, "has_30s_safety_rule": true, "later_run": "compiled 0 rules (56s)"},
+    {"model": "step-3.5-flash", "seconds": 94, "rules": 17, "rejected": 0, "has_30s_safety_rule": true, "later_run": "15 rules (74s), used for the end-to-end run"},
+    {"model": "step-3.7-flash", "seconds": 78, "rules": 3, "rejected": 3, "has_30s_safety_rule": true, "later_runs": "13 rules (91s), 15 rules (121s), one 300s read timeout"},
+    {"model": "step-5-preview", "seconds": 600, "error": "read timeout"},
+    {"model": "local qwen3.6:35b-a3b-q8_0 (DGX Spark, Ollama)", "seconds": 190, "rules": 15}
+  ],
+  "end_to_end": {"model": "step-3.5-flash", "compile_s": 74, "rules": 15, "verdict": "Timing Violation (R-013, 45.0s vs 30s)", "agent_tools": ["get_verification_report", "run_root_cause_analysis"], "agent_s": 18}
+}

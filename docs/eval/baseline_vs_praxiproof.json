@@ -1,0 +1,177 @@
+{
+  "truth": {
+    "compliant": "Compliant",
+    "missing_cover": "Missing Step",
+    "psu_before_fans": "Order Violation"
+  },
+  "videos": {
+    "Install_12_compliant": {
+      "truth": "Compliant",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the fans (Frames 3-9), then the power supplies (Frames 10-12), and finally the server cover, locking it with the black latch (Frames 13-16)."
+        },
+        {
+          "phase": 0.5,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, the six fans were installed one by one (Frames 3-9), then the two power supplies were installed (Frames 10-12), and finally, the server cover was placed and locked using the black latch (Frames 13-16)."
+        },
+        {
+          "phase": 0.75,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first installing the six fans (Frames 3-8), then the two power supplies (Frames 9-11), and finally the server cover, which was locked using the black latch (Frames 12-16)."
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-021",
+        "status": "done",
+        "result": "Needs Evidence"
+      }
+    },
+    "Install_12_missing_cover": {
+      "truth": "Missing Step",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the power supplies (Frames 4-13) before installing all six fans. According to the Requirements section, 'Install the fans before installing the power supplies.' In the video, the technician installs the power supplies while some fan slots are still empty, and only attempts t"
+        },
+        {
+          "phase": 0.5,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the power supplies (Frames 4-11) before installing all six fans. According to the Requirements section, 'Install the fans before installing the power supplies.' In the video, the technician installs the power supplies while several fan slots remain empty."
+        },
+        {
+          "phase": 0.75,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, the six fans were installed one by one (Frames 3-11), then the first power supply was installed (Frames 12-13), and finally the second power supply was installed (Frames 14-16). While the server cover installation (Step 4) is not sho"
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-022",
+        "status": "done",
+        "result": "Missing Step"
+      }
+    },
+    "Install_12_psu_before_fans": {
+      "truth": "Order Violation",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first installing the six fans (Frames 2-9), then the two power supplies (Frames 10-12), and finally the server cover, locking it with the black latch (Frames 13-16)."
+        },
+        {
+          "phase": 0.5,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, the six fans were installed (Frames 4-11), then the two power supplies were installed (Frames 3 and 12), and finally, the server cover was placed and locked using the black latch (Frames 13-16)."
+        },
+        {
+          "phase": 0.75,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the first power supply (Frames 3-4) and then began installing the fans (Frames 5-11). According to the Requirements section of the procedure, 'Install the fans before installing the power supplies.'"
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-023",
+        "status": "done",
+        "result": "Order Violation"
+      }
+    },
+    "Install_13_compliant": {
+      "truth": "Compliant",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-8), then the two power supplies (Frames 9-11), and finally the server cover (Frames 12-16)."
+        },
+        {
+          "phase": 0.5,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-11), then they installed the two power supplies (Frames 12-14), and finally, they installed and locked the server cover (Frames 15-16)."
+        },
+        {
+          "phase": 0.75,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-8), then the two power supplies (Frames 9-11), and finally the server cover, locking it with the black latch (Frames 12-16)."
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-016",
+        "status": "done",
+        "result": "Needs Evidence"
+      }
+    },
+    "Install_13_missing_cover": {
+      "truth": "Missing Step",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-11), then they installed the two power supplies (Frames 12-14), and finally, they installed the server cover (Frames 15-16)."
+        },
+        {
+          "phase": 0.5,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-11), then they installed the two power supplies (Frames 12-14), and finally, they installed the server cover (Frames 15-16)."
+        },
+        {
+          "phase": 0.75,
+          "verdict": "compliant",
+          "label": "Compliant",
+          "explanation": "The technician followed the procedure in the correct order: first, they installed the six fans (Frames 2-11), then they installed the two power supplies (Frames 12-14), and finally, they installed the server cover (Frame 15)."
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-018",
+        "status": "done",
+        "result": "Missing Step"
+      }
+    },
+    "Install_13_psu_before_fans": {
+      "truth": "Order Violation",
+      "baseline": [
+        {
+          "phase": 0.25,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the first power supply (Frame 2) before installing all six fans. According to the requirements, all six fans must be installed before installing the power supplies."
+        },
+        {
+          "phase": 0.5,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the power supplies (Frames 2-3) before installing all the fans. According to the Requirements section, 'Install the fans before installing the power supplies.' The technician installed some fans, then both power supplies, and only then returned to install the remaining fans "
+        },
+        {
+          "phase": 0.75,
+          "verdict": "wrong_order",
+          "label": "Order Violation",
+          "explanation": "The technician installed the power supplies before installing all the fans. In frames 3-8, the technician installs the first power supply. In frames 9-12, the technician installs the second power supply. Only after these steps, in frames 13-15, does the technician install the remaining fans. This vi"
+        }
+      ],
+      "praxiproof": {
+        "pipeline": "PL-020",
+        "status": "done",
+        "result": "Order Violation"
+      }
+    }
+  }
+}

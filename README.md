@@ -91,10 +91,15 @@ deploy/deploy.sh --skip-tests    # 跳过测试,加速迭代
 export PRAXIPROOF_LLM_PROVIDER=openai        # 默认 ollama
 export PRAXIPROOF_OPENAI_BASE_URL=https://api.stepfun.com/v1
 export PRAXIPROOF_OPENAI_API_KEY=sk-...
-export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
+export PRAXIPROOF_LLM_MODEL=step-3.5-flash   # 实测可用,见下
 ```
 
-当前仓库里还没有真实 StepFun API key 去跑通端到端调用,这条链路的正确性靠 `tests/test_llm_openai.py`(mock HTTP 层验证 payload/response 解析)和已有的 `chat`/`chat_json` 消费方(`ComplianceAgent`、`constraints/compiler.py`、视频后端)保证;接入真实 StepFun 模型只需要设置上面三个环境变量,不需要改代码。
+已用 StepFun 阶跃星辰的真实 API 端到端验证过(2026-09-21,`base_url` 为 `https://api.stepfun.com/step_plan/v1`):`chat_json`(`json_schema` 严格模式)、工具调用、手册编译、验证、Agent 追问(含委托 RCA agent,中英文)全部跑通。原始数据见 `docs/eval/stepfun_compile_benchmark.json`。几点实测结论:
+
+- **模型选择**:编译同一份手册,`step-router-v1` 42 秒/15 条规则,`step-3.5-flash` 94 秒/17 条,`step-3.7-flash` 78 秒但只有 3 条规则(其他几次是 13、15 条),`step-5-preview` 超时 600 秒;本地 `qwen3.6:35b` 在 Spark 上 190 秒/15 条。端到端验证用的是 `step-3.5-flash`(15 条规则 74 秒,Agent 追问 18 秒)。**同一模型多次运行的结果并不稳定**(`step-router-v1` 另一次编出了 0 条规则),所以这些是单次测量,只能作为参考。
+- **由此发现并修掉的问题**:① 工具调用循环里工具结果消息缺 `tool_call_id`,OpenAI 协议的服务端直接 400(Ollama 用的是 `tool_name`,现在两个字段都带,客户端对 OpenAI 端点会去掉 `tool_name`);② 云端会断连和限流,客户端加了有限次退避重试(断连、连接失败、429/5xx 重试,读超时不重试);③ 手册编出 0 条规则时原来仍显示 `ready`,对它验证会得到 `PASS`——现在会直接编译失败并说明原因。
+- 如果本机开了系统代理,长时间无数据的非流式请求可能被代理掐断,可以用 `NO_PROXY=api.stepfun.com` 直连。
+- API key 只通过环境变量传入,不写入任何文件或配置。
 
 ## 模型调优与消融实验(DGX Spark 上的真实测量)
 
@@ -118,6 +123,23 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 **③ VLM 选型**(18 个留出片段的单步分类准确率,`docs/eval/vlm_select*.json`):`gemma4:31b` 18/18(约 4.5 秒/片段);`qwen3.6:35b-a3b`(默认思考模式)17/18 但 29.7 秒/片段;`qwen3-vl:32b` 15/18;`qwen3.6` 关闭思考后掉到 5/18。所以视频侧用 gemma4,文本侧(手册编译、Agent)用 qwen3.6。
 
 **局限**:评测集只有 2 段录像、18 个标注事件,F1 0.971 的置信区间很宽,不能外推为通用准确率;两个 demo 场景的 `BENCHMARK.md` 评的是确定性验证引擎,与这里的视频侧指标是两回事。
+
+## 对照实验:直接问 VLM vs PraxiProof
+
+为了说明"确定性验证引擎 + 证据链"比直接让 VLM 判断强在哪,在 Spark 上做了对照:6 段 NVIDIA 数据集里的编辑录像(`Install_12`/`Install_13` 各一段合规、缺机盖、电源先于风扇),真值已知。**基线**是 `gemma4:31b` 看到手册全文和 16 张带时间戳的关键帧后直接回答"是否合规",换 3 个采样相位各问一次;**PraxiProof** 是线上的一键流水线。原始数据 `docs/eval/baseline_vs_praxiproof.json`。
+
+| 录像 | 真值 | 直接问 VLM(3 次采样)| PraxiProof |
+|---|---|---|---|
+| Install_12 合规 | Compliant | 3/3 正确 | Needs Evidence |
+| Install_12 缺机盖 | Missing Step | 0/3(判成 Order Violation ×2、Compliant ×1)| **Missing Step** |
+| Install_12 电源先于风扇 | Order Violation | 1/3(Compliant ×2)| **Order Violation** |
+| Install_13 合规 | Compliant | 3/3 正确 | Needs Evidence |
+| Install_13 缺机盖 | Missing Step | 0/3(全部判成 Compliant)| **Missing Step** |
+| Install_13 电源先于风扇 | Order Violation | 3/3 正确 | **Order Violation** |
+
+- **有违规的 4 段录像**:PraxiProof 4/4 判对类型,并给出手册引用和视频时间段;直接问 VLM 只有 4/12 次判对类型,其中 6/12 次直接说"合规"(漏报),同一段录像换个采样就会改口(6 段里只有 4 段前后一致)。
+- **合规的 2 段录像**:直接问 VLM 6/6 判对,而 PraxiProof 都没有放行,给的是 "Needs Evidence"。原因是观测端漏检了一个风扇事件(5/6),电源和机盖只以 0.25 的低置信度检出,确定性引擎在证据不足时选择"证据不足"而不是猜——没有误报违规,但也**不能放行合规操作**,这是目前的短板,改进方向是提升观测端召回。
+- 样本很小(6 段录像),只能说明方向。
 
 ## Agent Skills 设计
 
@@ -145,11 +167,11 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 - **LLM/VLM 推理**:本地 Ollama,或任意 OpenAI 兼容端点(`PRAXIPROOF_LLM_PROVIDER=openai`,见上文),手册编译用 LLM、视频理解用 VLM,模型名可在运行时热切换。
 - **NVIDIA 技术栈**:DDM-Net 时序边界检测(来自 `NVIDIA/sop-monitoring-blueprints` 的 training blueprint),GPU 推理容器化部署;`nvidia_sop` 后端预留了对接官方 `sop-inference-bp` 推理服务的接口。
 - **Web**:FastAPI + 内置静态双语前端。
-- **StepFun 阶跃星辰模型**:通过上面的 OpenAI 兼容 provider 接入——代码/测试已就绪,但本仓库目前没有可用的 StepFun API key 去实跑,还未选定并验证具体模型名(见下文路线图)。
+- **StepFun 阶跃星辰模型**:通过上面的 OpenAI 兼容 provider 接入,已用真实 API 验证 `step-3.5-flash`/`step-3.7-flash`/`step-router-v1`(手册编译、工具调用、Agent 追问),详见上文。
 
 ## 已知限制 / Roadmap
 
-- [ ] 用真实 StepFun API key 跑通一次 `PRAXIPROOF_LLM_PROVIDER=openai` 端到端调用,把验证过的模型名(如 `step-2-16k` 之类,以官方最新命名为准)写进本文档和默认配置。
+- [ ] 把 Spark 上的线上服务切到 StepFun(需要在 systemd 里配置环境变量,目前线上仍用本地 Ollama),并评估 StepFun 的 VLM 能力用于视频理解。
 - [ ] 评测集目前只有 2 段留出录像(共 18 个标注事件),样本量小;补充更多留出录像后重跑 `praxiproof eval-sop`,并把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
 - [ ] `BENCHMARK.md` 补上真实 Ollama 环境下的 Efficiency 与"带/不带 skill"对比。
 - [ ] 录制 Demo 演示视频、撰写黑客松十日谈征文、补团队合影。
