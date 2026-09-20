@@ -1,0 +1,185 @@
+{
+  "source_id": "DEMO-MANUAL",
+  "procedure": "DGX H100 Front Fan Module Replacement",
+  "events": [
+    {
+      "label": "failed_fan_identified",
+      "description": "Failed fan module identified from BMC sensor data, the nvsm show fans output, or its lit fault LED"
+    },
+    {
+      "label": "new_fan_unpacked",
+      "description": "New fan module taken out of its packaging and held ready to install"
+    },
+    {
+      "label": "bezel_removed",
+      "description": "Front bezel removed from the system, exposing the fan modules"
+    },
+    {
+      "label": "fan_unlocked",
+      "description": "Release button on the failed fan module pressed to unlock it"
+    },
+    {
+      "label": "fan_removed",
+      "description": "Failed fan module pulled fully out of its bay"
+    },
+    {
+      "label": "fan_inserted",
+      "description": "New fan module pushed fully into the empty fan bay"
+    },
+    {
+      "label": "fan_health_verified",
+      "description": "New fan confirmed healthy: amber LED off, or BMC sensors or nvsm show fans checked"
+    },
+    {
+      "label": "bezel_installed",
+      "description": "Front bezel reinstalled on the system"
+    }
+  ],
+  "requirements": [
+    {
+      "rule_id": "R-001",
+      "statement": "Identify the failed fan module through the BMC, nvsm, or its fault LED before removing it",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "failed_fan_identified",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": false,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B3"
+      ]
+    },
+    {
+      "rule_id": "R-002",
+      "statement": "Take the new fan module out of its packaging and be ready to install it before removing the old one",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "new_fan_unpacked",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B28"
+      ]
+    },
+    {
+      "rule_id": "R-003",
+      "statement": "Replace the old fan with the new one within 30 seconds to avoid overheating system components",
+      "constraint": {
+        "type": "MAX_INTERVAL",
+        "event": null,
+        "a": "fan_removed",
+        "b": "fan_inserted",
+        "seconds": 30.0,
+        "min_count": null
+      },
+      "category": "safety",
+      "severity": "critical",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B28"
+      ]
+    },
+    {
+      "rule_id": "R-004",
+      "statement": "Remove the bezel to expose the fan modules before removing a fan",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "bezel_removed",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B15"
+      ]
+    },
+    {
+      "rule_id": "R-005",
+      "statement": "Unlock the fan module by pressing the release button before pulling it out",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "fan_unlocked",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B30"
+      ]
+    },
+    {
+      "rule_id": "R-006",
+      "statement": "Confirm the new fan module is healthy through the BMC, its amber LED, or nvsm show fans",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "fan_health_verified",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "verification",
+      "severity": "critical",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ]
+    },
+    {
+      "rule_id": "R-007",
+      "statement": "Check fan health after the new fan module is installed",
+      "constraint": {
+        "type": "AFTER",
+        "event": null,
+        "a": "fan_health_verified",
+        "b": "fan_inserted",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "verification",
+      "severity": "major",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ]
+    },
+    {
+      "rule_id": "R-008",
+      "statement": "Reinstall the bezel when the replacement is complete",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "bezel_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "minor",
+      "observable": true,
+      "evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ]
+    }
+  ],
+  "compiler_model": "reference"
+}

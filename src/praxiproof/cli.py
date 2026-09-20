@@ -17,6 +17,7 @@ def main() -> None:
 
     bench = sub.add_parser("bench", help="score the verification engine on the demo reference set")
     bench.add_argument("--demo-dir", type=Path, default=DEFAULT_DEMO_DIR)
+    bench.add_argument("--skill-md", type=Path, help="also render a NVIDIA-Verified-Skill-style BENCHMARK.md to this path")
 
     compile_cmd = sub.add_parser("compile", help="compile a manual into constraints with the configured LLM")
     compile_cmd.add_argument("manual", type=Path)
@@ -47,7 +48,14 @@ def main() -> None:
 
         uvicorn.run(create_app(), host=args.host, port=args.port)
     elif args.command == "bench":
-        print(json.dumps(run_benchmark(args.demo_dir), indent=2))
+        result = run_benchmark(args.demo_dir)
+        print(json.dumps(result, indent=2))
+        if args.skill_md:
+            from praxiproof.compiler.benchmark import render_benchmark_md
+
+            args.skill_md.write_text(
+                render_benchmark_md(result, "DGX H100 front fan module replacement — PraxiProof demo skill"), encoding="utf-8"
+            )
     elif args.command == "build-references":
         from praxiproof.eval.nvidia_sop import build_references
 

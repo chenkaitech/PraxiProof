@@ -41,11 +41,23 @@ def test_skill_package(tmp_path, reference, observation_fixture):
     assert "within 30 seconds" in (root / "references" / "evidence.md").read_text()
     assert "## Deviations seen in practice" in text and "R-006" not in text.split("## Deviations")[0]
     assert "_(manual Replacing and Returning the Front Fan Module)_" in text
-    assert len(list((root / "evals").glob("*.json"))) == len(requirement_set.requirements)
+
+    cases = json.loads((root / "evals" / "evals.json").read_text())
+    assert len(cases) == len(requirement_set.requirements) + 3
+    negative = [c for c in cases if c["negative"]]
+    assert len(negative) == 3
+    assert all(c["rule_id"] is None and not c["must_flag_problem"] for c in negative)
+    assert all(not c["negative"] for c in cases if c["rule_id"])
+
+    card = (root / "references" / "skill-card.md").read_text()
+    assert "Skill Card" in card and report.run_id in card
+
     assert (root / "assets" / "r-006.jpg").read_bytes() == b"jpg"
 
     names = zipfile.ZipFile(io.BytesIO(zip_dir(root))).namelist()
     assert f"{root.name}/SKILL.md" in names
+    assert f"{root.name}/references/skill-card.md" in names
+    assert f"{root.name}/evals/evals.json" in names
 
 
 def test_slugify():

@@ -287,7 +287,7 @@ class PraxiProof:
         evidence = self._report_evidence(report)
         record = self.store.create("skills", {"run_id": run_id, "name": skill.name, "procedure": requirements.procedure})
         out_dir = self.data_dir / "skills" / record["id"]
-        root = write_skill(skill, requirements, report, evidence, out_dir, self._violation_keyframes(report, evidence))
+        root = write_skill(skill, requirements, report, evidence, out_dir, self._violation_keyframes(report, evidence), observation)
         return self.store.update(
             "skills",
             record["id"],

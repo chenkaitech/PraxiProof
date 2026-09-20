@@ -1,0 +1,298 @@
+{
+  "run_id": "DEMO-B",
+  "manual_id": "DEMO-MANUAL",
+  "video_id": null,
+  "procedure": "DGX H100 Front Fan Module Replacement",
+  "verdicts": [
+    {
+      "rule_id": "R-001",
+      "status": "PASS",
+      "reason": "failed_fan_identified established before fan_removed",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "failed_fan_identified",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Identify the failed fan module through the BMC, nvsm, or its fault LED before removing it",
+      "observed_event_ids": [
+        "O-002",
+        "O-005"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B3"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-002",
+        "EV-DEMO-B-O-005"
+      ],
+      "reason_code": "precondition.pass",
+      "reason_params": {
+        "a": "failed_fan_identified",
+        "b": "fan_removed"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-002",
+      "status": "PASS",
+      "reason": "new_fan_unpacked established before fan_removed",
+      "constraint": {
+        "type": "PRECONDITION",
+        "event": null,
+        "a": "new_fan_unpacked",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Take the new fan module out of its packaging and be ready to install it before removing the old one",
+      "observed_event_ids": [
+        "O-003",
+        "O-005"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B28"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-003",
+        "EV-DEMO-B-O-005"
+      ],
+      "reason_code": "precondition.pass",
+      "reason_params": {
+        "a": "new_fan_unpacked",
+        "b": "fan_removed"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-003",
+      "status": "PASS",
+      "reason": "fan_removed → fan_inserted took 12.0s, within 30s",
+      "constraint": {
+        "type": "MAX_INTERVAL",
+        "event": null,
+        "a": "fan_removed",
+        "b": "fan_inserted",
+        "seconds": 30.0,
+        "min_count": null
+      },
+      "category": "safety",
+      "severity": "critical",
+      "statement": "Replace the old fan with the new one within 30 seconds to avoid overheating system components",
+      "observed_event_ids": [
+        "O-005",
+        "O-006"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B28"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-005",
+        "EV-DEMO-B-O-006"
+      ],
+      "reason_code": "interval.pass",
+      "reason_params": {
+        "a": "fan_removed",
+        "b": "fan_inserted",
+        "limit": "30",
+        "interval": "12.0",
+        "uncertainty": "1.0"
+      },
+      "measured": {
+        "observed_seconds": 12.0,
+        "uncertainty_seconds": 1.0,
+        "required_seconds": 30.0
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-004",
+      "status": "PASS",
+      "reason": "bezel_removed precedes fan_removed",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "bezel_removed",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Remove the bezel to expose the fan modules before removing a fan",
+      "observed_event_ids": [
+        "O-001",
+        "O-005"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B15"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-001",
+        "EV-DEMO-B-O-005"
+      ],
+      "reason_code": "order.pass",
+      "reason_params": {
+        "earlier": "bezel_removed",
+        "later": "fan_removed"
+      },
+      "measured": {
+        "gap_seconds": 33.0
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-005",
+      "status": "PASS",
+      "reason": "fan_unlocked precedes fan_removed",
+      "constraint": {
+        "type": "BEFORE",
+        "event": null,
+        "a": "fan_unlocked",
+        "b": "fan_removed",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "major",
+      "statement": "Unlock the fan module by pressing the release button before pulling it out",
+      "observed_event_ids": [
+        "O-004",
+        "O-005"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B30"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-004",
+        "EV-DEMO-B-O-005"
+      ],
+      "reason_code": "order.pass",
+      "reason_params": {
+        "earlier": "fan_unlocked",
+        "later": "fan_removed"
+      },
+      "measured": {
+        "gap_seconds": 2.0
+      },
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-006",
+      "status": "VIOLATION",
+      "reason": "fan_health_verified was not observed anywhere in the video; the step is mandatory",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "fan_health_verified",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "verification",
+      "severity": "critical",
+      "statement": "Confirm the new fan module is healthy through the BMC, its amber LED, or nvsm show fans",
+      "observed_event_ids": [],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ],
+      "observation_evidence_ids": [],
+      "reason_code": "unseen.violation",
+      "reason_params": {
+        "events": "fan_health_verified",
+        "context": "ctx.mandatory",
+        "a": "",
+        "b": ""
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-007",
+      "status": "VIOLATION",
+      "reason": "fan_health_verified was not observed anywhere in the video; it must happen after fan_inserted",
+      "constraint": {
+        "type": "AFTER",
+        "event": null,
+        "a": "fan_health_verified",
+        "b": "fan_inserted",
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "verification",
+      "severity": "major",
+      "statement": "Check fan health after the new fan module is installed",
+      "observed_event_ids": [],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ],
+      "observation_evidence_ids": [],
+      "reason_code": "unseen.violation",
+      "reason_params": {
+        "events": "fan_health_verified",
+        "context": "ctx.must_after",
+        "a": "fan_health_verified",
+        "b": "fan_inserted"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    },
+    {
+      "rule_id": "R-008",
+      "status": "PASS",
+      "reason": "bezel_installed observed",
+      "constraint": {
+        "type": "MUST_HAVE",
+        "event": "bezel_installed",
+        "a": null,
+        "b": null,
+        "seconds": null,
+        "min_count": null
+      },
+      "category": "procedure",
+      "severity": "minor",
+      "statement": "Reinstall the bezel when the replacement is complete",
+      "observed_event_ids": [
+        "O-007"
+      ],
+      "requirement_evidence_ids": [
+        "EV-DEMO-MANUAL-B32"
+      ],
+      "observation_evidence_ids": [
+        "EV-DEMO-B-O-007"
+      ],
+      "reason_code": "must_have.pass",
+      "reason_params": {
+        "event": "bezel_installed"
+      },
+      "measured": null,
+      "needed_evidence": null,
+      "needed_code": null,
+      "review": null
+    }
+  ],
+  "alignment": [],
+  "created_at": "2026-09-20T10:40:11.447874Z"
+}

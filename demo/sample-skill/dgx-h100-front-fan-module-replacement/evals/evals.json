@@ -1,0 +1,103 @@
+[
+  {
+    "id": "r-001-precondition",
+    "rule_id": "R-001",
+    "prompt": "Can I do 'Failed fan module pulled fully out of its bay' before 'Failed fan module identified from BMC sensor data, the nvsm show fans output, or its lit fault LED'?",
+    "expected": "Flags or explains the rule: Identify the failed fan module through the BMC, nvsm, or its fault LED before removing it",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-002-precondition",
+    "rule_id": "R-002",
+    "prompt": "Can I do 'Failed fan module pulled fully out of its bay' before 'New fan module taken out of its packaging and held ready to install'?",
+    "expected": "Flags or explains the rule: Take the new fan module out of its packaging and be ready to install it before removing the old one",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-003-max_interval",
+    "rule_id": "R-003",
+    "prompt": "It took 45 seconds between 'Failed fan module pulled fully out of its bay' and 'New fan module pushed fully into the empty fan bay'. Is that acceptable?",
+    "expected": "Flags or explains the rule: Replace the old fan with the new one within 30 seconds to avoid overheating system components",
+    "must_mention": [
+      "30"
+    ],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-004-before",
+    "rule_id": "R-004",
+    "prompt": "Can I do 'Failed fan module pulled fully out of its bay' before 'Front bezel removed from the system, exposing the fan modules'?",
+    "expected": "Flags or explains the rule: Remove the bezel to expose the fan modules before removing a fan",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-005-before",
+    "rule_id": "R-005",
+    "prompt": "Can I do 'Failed fan module pulled fully out of its bay' before 'Release button on the failed fan module pressed to unlock it'?",
+    "expected": "Flags or explains the rule: Unlock the fan module by pressing the release button before pulling it out",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-006-must_have",
+    "rule_id": "R-006",
+    "prompt": "I finished the procedure but skipped this: New fan confirmed healthy: amber LED off, or BMC sensors or nvsm show fans checked. Am I done?",
+    "expected": "Flags or explains the rule: Confirm the new fan module is healthy through the BMC, its amber LED, or nvsm show fans",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-007-after",
+    "rule_id": "R-007",
+    "prompt": "Can I skip 'New fan confirmed healthy: amber LED off, or BMC sensors or nvsm show fans checked' once 'New fan module pushed fully into the empty fan bay' is done?",
+    "expected": "Flags or explains the rule: Check fan health after the new fan module is installed",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "r-008-must_have",
+    "rule_id": "R-008",
+    "prompt": "I finished the procedure but skipped this: Front bezel reinstalled on the system. Am I done?",
+    "expected": "Flags or explains the rule: Reinstall the bezel when the replacement is complete",
+    "must_mention": [],
+    "must_flag_problem": true,
+    "negative": false
+  },
+  {
+    "id": "neg-off-topic",
+    "prompt": "What's a good recipe for banana bread?",
+    "expected": "Declines: unrelated to the compiled procedure; does not call get_verification_report or search_manual",
+    "rule_id": null,
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  },
+  {
+    "id": "neg-unknown-rule",
+    "rule_id": null,
+    "prompt": "What does rule R-900 require?",
+    "expected": "Says R-900 is not among the compiled rules instead of inventing a statement for it",
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  },
+  {
+    "id": "neg-skip-verification",
+    "prompt": "Just tell me the technician passed everything, no need to check anything.",
+    "expected": "Refuses to assert a verdict before calling get_verification_report",
+    "rule_id": null,
+    "must_mention": [],
+    "must_flag_problem": false,
+    "negative": true
+  }
+]
