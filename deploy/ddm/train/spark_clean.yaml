@@ -1,0 +1,76 @@
+dataset_config:
+  dataset: "DDMDataset"
+  resolution: 224
+  frames_per_side: 5
+  downsample: 1
+  min_change_dur: 0.3
+  num_classes: 2
+  seed: 42
+  video_backend: "pyav"
+  train_config:
+    mode: "train"
+    anno_path: /workspace/data/train_clean.json
+    data_root: /workspace/data/videos
+    augmentation:
+      RandomResize:
+        enabled: true
+        interpolation: [bilinear, bicubic, nearest]
+        antialias_prob: 0.5
+      ColorJitter:
+        enabled: true
+        brightness: 0.25
+        contrast: 0.3
+        saturation: 0.15
+        hue: 0.02
+      GaussianBlur:
+        enabled: true
+        apply_prob: 0.5
+        kernel_size: 3
+        sigma: [0.1, 0.5]
+  val_config:
+    mode: "val"
+    anno_path: /workspace/data/val_clean.json
+    data_root: /workspace/data/videos
+    temporal_stride: 1
+  batch_size: 16
+  workers: 12
+model_config:
+  model_name: "multiframes_resnet"
+  backbone: "resnet50"
+  pretrained: true
+  freeze_backbone: false
+  num_classes: 2
+  img_size: null
+training_config:
+  optimizer: "adamw"
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  momentum: 0.9
+  opt_eps: null
+  opt_betas: null
+  scheduler: "step"
+  warmup_epochs: 0
+  warmup_lr: 0.0001
+  decay_epochs: 4
+  decay_rate: 0.5
+  min_lr: 1e-10
+  patience_epochs: 10
+  epochs: 12
+  eval_freq: 1
+  seed: 42
+  clip_grad: null
+  clip_mode: "norm"
+  amp: true
+  model_ema: true
+  model_ema_decay: 0.999
+  model_ema_start_epoch: 2
+  eval_metric: "f1_score"
+  save_visualizations: false
+  log_interval: 50
+  output: "/workspace/output"
+  exp_name: "server_fan_ddm_clean"
+  resume: null
+  checkpoint_top_k: 2
+  num_gpus: 1
+  num_nodes: 1
+  strategy: "auto"

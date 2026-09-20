@@ -79,7 +79,7 @@ deploy/deploy.sh --skip-tests    # 跳过测试,加速迭代
 
 `deploy/praxiproof.service` 把服务跑在 `0.0.0.0:8090`,通过环境变量指向本地 Ollama(`PRAXIPROOF_OLLAMA_URL=http://127.0.0.1:11434`)。所有可调参数(用哪个 LLM/VLM、用哪个视频后端、DDM 检查点路径、置信度阈值等)既可以用 `PRAXIPROOF_*` 环境变量设置,也可以在跑起来之后通过 `/api/settings` 接口实时热切换(`src/praxiproof/config.py` 的 `EDITABLE` 字段),不需要重启服务——这是"如何优化大模型"这条要求的落点:同一套流水线可以在不同模型间无缝 A/B,把 `praxiproof bench` / `praxiproof eval-sop` 的量化结果作为选型依据,而不是拍脑袋定死一个模型。
 
-`ddm_vlm` 后端的 DDM-Net 边界检测模型跑在独立的 GPU Docker 容器里(`deploy/ddm/Dockerfile`),通过 `PRAXIPROOF_DDM_CHECKPOINT` 指定权重;当前使用的是 NVIDIA SOP training blueprint 提供的通用预训练权重,在自有 demo 录像上做微调(`sop-ddm-finetuning-plugin`/`sop-cr-finetuning-plugin`)是路线图中的下一步。
+`ddm_vlm` 后端的 DDM-Net 边界检测模型跑在独立的 GPU Docker 容器里(`deploy/ddm/Dockerfile`),通过 `PRAXIPROOF_DDM_CHECKPOINT` 指定权重。线上 Spark 用的是**我们在 Spark 上自己微调的权重**(训练配置和脚本见 `deploy/ddm/train/`,实验数据见下文"模型调优与消融实验"),不是通用预训练权重。
 
 ### LLM/VLM provider:本地 Ollama 或任意 OpenAI 兼容端点
 
@@ -95,6 +95,29 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 ```
 
 当前仓库里还没有真实 StepFun API key 去跑通端到端调用,这条链路的正确性靠 `tests/test_llm_openai.py`(mock HTTP 层验证 payload/response 解析)和已有的 `chat`/`chat_json` 消费方(`ComplianceAgent`、`constraints/compiler.py`、视频后端)保证;接入真实 StepFun 模型只需要设置上面三个环境变量,不需要改代码。
+
+## 模型调优与消融实验(DGX Spark 上的真实测量)
+
+视频理解这一步(视频 → 带时间戳的事件)是整条链路里最容易出错的环节,所以在 Spark 上做了微调和逐层消融。数据集是 NVIDIA `sop-server-fan-installation-data`(`praxiproof eval-sop` 评测):10 段训练录像,`Install_12`/`Install_13` 两段**留出**做测试——留出录像既没参与微调,也不允许作为参考图(`eval/nvidia_sop.py:build_references` 遇到测试录像直接抛错)。
+
+**① DDM-Net 边界检测模型微调**:NVIDIA `pytorch:26.08` 容器里在 GB10 上训练,ResNet-50 骨干(`multiframes_resnet`),分辨率 224、每侧 5 帧,RandomResize/ColorJitter/GaussianBlur 数据增强,8 段训练 / 2 段验证。配置与脚本:`deploy/ddm/train/spark_clean.yaml`、`run_train_clean.sh`。
+
+**② 后端消融**(事件检测,时间 IoU ≥ 0.3;原始结果在 `docs/eval/*.json`):
+
+| 方案 | 精确率 | 召回率 | F1 | 序列相似度 | 秒/视频 |
+|---|---|---|---|---|---|
+| `local_vlm`:纯 VLM 滑窗(gemma4:31b)| 0.818 | 0.500 | 0.621 | 0.500 | 204 |
+| `local_vlm`:加状态提示 | 0.714 | 0.278 | 0.400 | 0.389 | 165 |
+| `local_vlm`:关闭窗口合并 | 0.588 | 0.556 | 0.571 | 0.667 | 398 |
+| `ddm_vlm`:DDM 切分 + VLM 分类 | 0.654 | 0.944 | 0.773 | 0.731 | 234 |
+| `ddm_vlm` + 参考图 + 多帧投票 + 手部检查(首版权重)| 0.548 | 0.944 | 0.694 | 0.612 | 1030 |
+| **`ddm_vlm` + 参考图 + 多帧投票 + 手部检查(微调后权重)**| **1.000** | **0.944** | **0.971** | **0.945** | 385 |
+
+读表:纯 VLM 滑窗召回只有 0.28–0.56;引入 DDM 边界切分把召回拉到 0.944;首版权重上叠加投票等提示工程反而拉低精确率并且慢了 4 倍;换成微调后的权重,精确率从 0.548 升到 1.000,同样的投票流程从 1030 秒降到 385 秒。注意这几行不是严格的单变量对照(方案之间同时改了多项),只能说明整体方向。
+
+**③ VLM 选型**(18 个留出片段的单步分类准确率,`docs/eval/vlm_select*.json`):`gemma4:31b` 18/18(约 4.5 秒/片段);`qwen3.6:35b-a3b`(默认思考模式)17/18 但 29.7 秒/片段;`qwen3-vl:32b` 15/18;`qwen3.6` 关闭思考后掉到 5/18。所以视频侧用 gemma4,文本侧(手册编译、Agent)用 qwen3.6。
+
+**局限**:评测集只有 2 段录像、18 个标注事件,F1 0.971 的置信区间很宽,不能外推为通用准确率;两个 demo 场景的 `BENCHMARK.md` 评的是确定性验证引擎,与这里的视频侧指标是两回事。
 
 ## Agent Skills 设计
 
@@ -127,6 +150,6 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 ## 已知限制 / Roadmap
 
 - [ ] 用真实 StepFun API key 跑通一次 `PRAXIPROOF_LLM_PROVIDER=openai` 端到端调用,把验证过的模型名(如 `step-2-16k` 之类,以官方最新命名为准)写进本文档和默认配置。
-- [ ] 用 `sop-ddm-finetuning-plugin` 在自有 demo 录像上微调 DDM-Net,而不是用通用预训练权重。
+- [ ] 评测集目前只有 2 段留出录像(共 18 个标注事件),样本量小;补充更多留出录像后重跑 `praxiproof eval-sop`,并把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
 - [ ] `BENCHMARK.md` 补上真实 Ollama 环境下的 Efficiency 与"带/不带 skill"对比。
 - [ ] 录制 Demo 演示视频、撰写黑客松十日谈征文、补团队合影。

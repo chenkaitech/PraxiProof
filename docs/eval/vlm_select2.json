@@ -1,0 +1,40 @@
+{
+  "qwen3.6:35b-a3b-q8_0 think=False mode=prompt": {
+    "accuracy": 0.278,
+    "correct": 5,
+    "cases": 18,
+    "mean_seconds": 1.5,
+    "errors": 0,
+    "confusions": [
+      "Install_12@11s gold=fan_installed got=none",
+      "Install_12@21s gold=fan_installed got=none",
+      "Install_12@27s gold=fan_installed got=none",
+      "Install_12@34s gold=fan_installed got=none",
+      "Install_12@44s gold=fan_installed got=none",
+      "Install_12@49s gold=fan_installed got=none",
+      "Install_13@3s gold=fan_installed got=none",
+      "Install_13@10s gold=fan_installed got=none",
+      "Install_13@17s gold=fan_installed got=none",
+      "Install_13@24s gold=fan_installed got=none",
+      "Install_13@35s gold=fan_installed got=none",
+      "Install_13@39s gold=fan_installed got=none",
+      "Install_13@52s gold=psu_installed got=none"
+    ]
+  },
+  "gemma4:31b think=False mode=prompt": {
+    "accuracy": 1.0,
+    "correct": 18,
+    "cases": 18,
+    "mean_seconds": 4.5,
+    "errors": 0,
+    "confusions": []
+  },
+  "gemma4:31b think=False mode=schema": {
+    "accuracy": 1.0,
+    "correct": 18,
+    "cases": 18,
+    "mean_seconds": 4.1,
+    "errors": 0,
+    "confusions": []
+  }
+}
