@@ -25,6 +25,8 @@ SYSTEM_PROMPT = (
     "nothing else, no other text before or after it."
 )
 
+CATEGORIES = ("VIDEO_GAP", "LOW_CONFIDENCE", "LABEL_MISMATCH", "BOUNDARY_UNCERTAINTY", "GENUINE_VIOLATION")
+
 TOOLS = [
     tool(
         "get_verdict_detail",
@@ -65,7 +67,7 @@ class RCAAgent:
         report = self.app.report(run_id)
         verdict = next((v for v in report.verdicts if v.rule_id == rule_id), None)
         if verdict is None:
-            return {"status": "failed", "error": f"no verdict for rule {rule_id} in run {run_id}"}
+            return {"status": "failed", "error": f"no verdict for rule {rule_id} in run {run_id}", "trace": []}
         if verdict.status == Status.PASS:
             return {
                 "status": "ok",
@@ -73,6 +75,7 @@ class RCAAgent:
                 "confidence": "high",
                 "explanation": f"{rule_id} is PASS; there is nothing to analyze.",
                 "recommendation": "",
+                "trace": [],
             }
 
         handlers = {
@@ -91,20 +94,22 @@ class RCAAgent:
                 ),
             },
         ]
+        trace: list[dict[str, Any]] = []
         for _ in range(self.max_steps):
             reply = self.app.llm.chat(self.app.settings.llm_model, messages, tools=TOOLS)
             messages.append(reply)
             calls = reply.get("tool_calls") or []
             if not calls:
-                return self._parse(reply.get("content", ""))
+                return self._parse(reply.get("content", "")) | {"trace": trace}
             for call in calls:
                 name = call["function"]["name"]
                 arguments = call["function"].get("arguments") or {}
                 if isinstance(arguments, str):
                     arguments = json.loads(arguments or "{}")
                 result = self._call(handlers, name, arguments)
+                trace.append({"tool": name, "arguments": arguments})
                 messages.append(tool_message(call, name, result))
-        return {"status": "failed", "error": "root cause analysis did not conclude within the tool-call limit"}
+        return {"status": "failed", "error": "root cause analysis did not conclude within the tool-call limit", "trace": trace}
 
     def _call(self, handlers: dict[str, Any], name: str, arguments: dict[str, Any]) -> Any:
         handler = handlers.get(name)
@@ -158,12 +163,17 @@ class RCAAgent:
         return item.model_dump(mode="json") | {"citation": item.citation()}
 
     def _parse(self, content: str) -> dict[str, Any]:
-        marker = "RCA_RESULT:"
-        idx = content.find(marker)
-        if idx == -1:
-            return {"status": "failed", "error": "agent did not return an RCA_RESULT block", "raw": content[:2000]}
-        try:
-            payload = json.loads(content[idx + len(marker) :].strip())
-        except json.JSONDecodeError:
-            return {"status": "failed", "error": "RCA_RESULT block was not valid JSON", "raw": content[idx:2000]}
+        # Real models drop the "RCA_RESULT:" prefix, wrap the JSON in a code fence or pretty-print it over several
+        # lines, so accept the first JSON object in the reply and validate its contents instead of its framing.
+        payload, start = None, content.find("{")
+        while start != -1 and payload is None:
+            try:
+                candidate, _ = json.JSONDecoder().raw_decode(content[start:])
+            except json.JSONDecodeError:
+                candidate = None
+            if isinstance(candidate, dict) and candidate.get("category") in CATEGORIES:
+                payload = candidate
+            start = content.find("{", start + 1)
+        if payload is None:
+            return {"status": "failed", "error": "agent did not return a valid RCA_RESULT", "raw": content[:2000]}
         return {"status": "ok"} | {k: payload.get(k) for k in ("category", "confidence", "explanation", "recommendation")}

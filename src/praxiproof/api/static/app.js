@@ -381,6 +381,41 @@ function evidenceLine(ids, evidence, videoId) {
     .join("");
 }
 
+const RCA_TONE = { VIDEO_GAP: "amber", LOW_CONFIDENCE: "amber", LABEL_MISMATCH: "blue", BOUNDARY_UNCERTAINTY: "blue", GENUINE_VIOLATION: "red", NOT_APPLICABLE: "green" };
+
+function rcaCard(r) {
+  if (r.status !== "ok") return `<div class="rca-card"><p class="error-text">${esc(r.error || t("rca.failed"))}</p></div>`;
+  return `<div class="rca-card"><div class="rca-head"><span class="badge tone-${RCA_TONE[r.category] || "blue"}">${esc(t(`rca.cat.${r.category}`))}</span><span class="muted">${esc(t("rca.confidence", { level: r.confidence }))}</span></div>
+    <p class="muted small">${esc(t(`rca.cat.${r.category}.hint`))}</p>
+    <p>${esc(r.explanation)}</p>${r.recommendation ? `<p><b>${esc(t("rca.recommendation"))}</b> ${esc(r.recommendation)}</p>` : ""}</div>`;
+}
+
+function stepList(steps) {
+  if (!steps.length) return `<p class="muted small">${esc(t("trace.no_tools"))}</p>`;
+  return `<ol class="steps">${steps.map((s) => `<li><code>${esc(s.tool)}</code>${Object.keys(s.arguments || {}).length ? ` <span class="muted small">${esc(Object.entries(s.arguments).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`).join(", ").slice(0, 80))}</span>` : ""}</li>`).join("")}</ol>`;
+}
+
+function traceView(trace) {
+  const delegated = trace.some((s) => s.agent === "rca");
+  return `<div class="trace"><div class="trace-title"><span class="agent-chip blue">${esc(t("trace.compliance"))}</span>${delegated ? `<span class="muted small">${esc(t("trace.delegated"))}</span>` : ""}</div>
+    <ol class="steps">${trace.map((s) => s.agent === "rca"
+      ? `<li class="delegate"><code>${esc(s.tool)}</code> <span class="muted small">${esc(s.arguments.rule_id || "")}</span>
+          <div class="sub"><div class="trace-title"><span class="agent-chip purple">${esc(t("trace.rca"))}</span><span class="muted small">${esc(t("trace.rca_tools"))}</span></div>${stepList(s.sub_trace || [])}${rcaCard(s.result)}</div></li>`
+      : `<li><code>${esc(s.tool)}</code></li>`).join("")}</ol></div>`;
+}
+
+async function askWhy(runId, ruleId, slot, button) {
+  button.disabled = true;
+  slot.innerHTML = `<div class="trace"><p>${ICON.spin} ${esc(t("rca.running"))}</p></div>`;
+  try {
+    const r = await api(`/api/runs/${encodeURIComponent(runId)}/verdicts/${encodeURIComponent(ruleId)}/analyze`, { method: "POST" });
+    slot.innerHTML = `<div class="trace"><div class="trace-title"><span class="agent-chip purple">${esc(t("trace.rca"))}</span><span class="muted small">${esc(t("trace.rca_tools"))}</span></div>${stepList(r.trace || [])}${rcaCard(r)}</div>`;
+  } catch (err) {
+    slot.innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
+  }
+  button.disabled = false;
+}
+
 async function renderRun(id) {
   const [run, skills] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api("/api/skills")]);
   const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} — ${esc(run.manual_name)}</p>${run.video_note ? `<p><span class="badge warn">${esc(t("video.note"))}</span> ${esc(run.video_note)}</p>` : ""}</div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>`;
@@ -407,7 +442,9 @@ async function renderRun(id) {
               <div class="evidence-pair">${evidenceLine(v.requirement_evidence_ids, run.evidence, run.video_id)}${evidenceLine(v.observation_evidence_ids, run.evidence, run.video_id)}</div>
               ${v.status !== "PASS" ? `<div class="verdict-actions"><span class="muted">${t("run.review")}</span>
                 <button class="btn small ${v.review === "accepted" ? "success" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="accepted">${t("run.confirm")}</button>
-                <button class="btn small ${v.review === "rejected" ? "danger" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="rejected">${t("run.reject")}</button></div>` : ""}
+                <button class="btn small ${v.review === "rejected" ? "danger" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="rejected">${t("run.reject")}</button>
+                <span class="spacer" style="flex:1"></span><button class="btn small why" data-why="${esc(v.rule_id)}">✦ ${t("rca.why")}</button></div>
+                <div class="why-slot" data-why-slot="${esc(v.rule_id)}"></div>` : ""}
             </div>`).join("")}</div>
         </section>
         <section class="card"><div class="card-head"><h3>${t("run.alignment")}</h3><p>${t("run.alignment_sub")}</p></div>
@@ -434,6 +471,7 @@ async function renderRun(id) {
       render(true);
     })
   );
+  view.querySelectorAll("[data-why]").forEach((b) => b.addEventListener("click", () => askWhy(run.id, b.dataset.why, view.querySelector(`[data-why-slot="${CSS.escape(b.dataset.why)}"]`), b)));
   $("#compile").addEventListener("click", async (e) => {
     e.target.disabled = true;
     try {
@@ -452,7 +490,7 @@ async function renderRun(id) {
     $("#answer").innerHTML = `<p>${ICON.spin} ${esc(t("common.thinking"))}</p>`;
     try {
       const r = await api("/api/agent/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, run_id: run.id, language: LANG }) });
-      $("#answer").innerHTML = `<div class="answer">${mdLite(r.answer)}</div><p class="muted">${esc(t("run.tools", { tools: r.tool_calls.map((c) => c.tool).join(", ") || t("common.none") }))}</p>`;
+      $("#answer").innerHTML = `<div class="answer">${mdLite(r.answer)}</div>${r.tool_calls.length ? traceView(r.tool_calls) : `<p class="muted">${esc(t("run.tools", { tools: t("common.none") }))}</p>`}`;
     } catch (err) {
       $("#answer").innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
     }
@@ -556,6 +594,47 @@ async function renderReports() {
       <td>${r.counts.PASS}</td><td>${r.counts.VIOLATION}</td><td>${r.counts.UNVERIFIED}</td><td>${r.counts.INSUFFICIENT_EVIDENCE}</td></tr>`).join("")}
     </tbody></table>` : `<p class="empty">${t("reports.none")}</p>`}</section>`;
   bindRowLinks(view);
+}
+
+const bar = (value, max, cls = "") => `<div class="bar"><span class="${cls}" style="width:${Math.max(2, Math.round((value / max) * 100))}%"></span></div>`;
+const labelText = (s) => t(`eval.l.${String(s).toLowerCase().replace(/ /g, "_")}`);
+
+function baselineChip(label, truth) {
+  const cls = label === truth ? "ok" : label === "Compliant" ? "bad" : "warn";
+  return `<span class="chip ${cls}">${esc(labelText(label))}</span>`;
+}
+
+async function renderEvaluation() {
+  const d = await api("/api/evaluation");
+  const shipped = d.backends.find((b) => b.shipped);
+  const first = d.backends[0];
+  const agentCard = (a) => `<div class="agent-card ${a.id === "rca" ? "purple" : "blue"}"><span class="agent-chip ${a.id === "rca" ? "purple" : "blue"}">${esc(t(`trace.${a.id}`))}</span>
+    <p class="muted small">${esc(t(`eval.agent.${a.id}`))}</p><div class="tool-chips">${a.tools.map((n) => `<code class="${n === "run_root_cause_analysis" ? "hot" : ""}">${esc(n)}</code>`).join("")}</div></div>`;
+  const b = d.baseline;
+  const tiles = b ? `<div class="tiles">
+      <div class="tile"><b>${b.violating.praxiproof_correct}/${b.violating.n}</b><span>${esc(t("eval.tile.pp_violations"))}</span></div>
+      <div class="tile weak"><b>${b.violating.baseline_correct}/${b.violating.samples}</b><span>${esc(t("eval.tile.vlm_violations"))}</span></div>
+      <div class="tile weak"><b>${b.violating.baseline_false_compliant}/${b.violating.samples}</b><span>${esc(t("eval.tile.vlm_missed"))}</span></div>
+      <div class="tile"><b>${b.compliant.praxiproof_cleared}/${b.compliant.n}</b><span>${esc(t("eval.tile.pp_cleared"))}</span></div>
+    </div>` : "";
+  view.innerHTML = `<div class="page-head"><div><h1>${t("eval.title")}</h1><p>${t("eval.subtitle")}</p></div></div>
+    <section class="card"><div class="card-head"><h3>${t("eval.agents")}</h3><p>${t("eval.agents_sub")}</p></div>
+      <div class="agent-flow">${agentCard(d.agents[0])}<div class="flow-arrow"><code>run_root_cause_analysis</code><span>→</span><small>${esc(t("eval.delegates"))}</small></div>${agentCard(d.agents[1])}</div></section>
+    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.tuning")}</h3><p>${t("eval.tuning_sub")}</p></div>
+      ${shipped && first ? `<p class="callout">${esc(t("eval.tuning_delta", { from: first.f1, to: shipped.f1 }))}</p>` : ""}
+      <table class="eval-table"><thead><tr><th>${t("eval.col_backend")}</th><th>F1</th><th></th><th>${t("eval.col_precision")}</th><th>${t("eval.col_recall")}</th><th>${t("eval.col_seq")}</th><th>${t("eval.col_time")}</th></tr></thead><tbody>
+      ${d.backends.map((r) => `<tr class="${r.shipped ? "shipped" : ""}"><td>${esc(t(`eval.backend.${r.id}`))}${r.shipped ? ` <span class="badge tone-green">${esc(t("eval.deployed"))}</span>` : ""}</td><td><b>${r.f1.toFixed(3)}</b></td><td class="barcell">${bar(r.f1, 1, r.shipped ? "good" : "")}</td><td>${r.precision.toFixed(3)}</td><td>${r.recall.toFixed(3)}</td><td>${r.sequence_similarity.toFixed(3)}</td><td>${Math.round(r.seconds_per_video)}s</td></tr>`).join("")}
+      </tbody></table><p class="muted small">${esc(t("eval.tuning_note"))}</p></section>
+    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.vlm")}</h3><p>${t("eval.vlm_sub")}</p></div>
+      <table class="eval-table"><tbody>${d.vlm_selection.map((r, i) => `<tr class="${i === 0 ? "shipped" : ""}"><td>${esc(r.model)} <span class="muted small">${esc(t(r.think_off ? "eval.mode_off" : "eval.mode_default"))}</span></td><td><b>${r.correct}/${r.cases}</b></td><td class="barcell">${bar(r.accuracy, 1, i === 0 ? "good" : "")}</td><td>${r.seconds}s / ${esc(t("eval.per_clip"))}</td></tr>`).join("")}</tbody></table></section>
+    ${b ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.baseline")}</h3><p>${t("eval.baseline_sub")}</p></div>${tiles}
+      <table class="eval-table"><thead><tr><th>${t("eval.col_video")}</th><th>${t("eval.col_truth")}</th><th>${t("eval.col_vlm")}</th><th>PraxiProof</th></tr></thead><tbody>
+      ${b.videos.map((v) => `<tr><td>${esc(v.id)}</td><td>${esc(labelText(v.truth))}</td><td class="chips">${v.baseline.map((l) => baselineChip(l, v.truth)).join("")}</td><td>${v.praxiproof === v.truth ? `<span class="chip ok">${esc(labelText(v.praxiproof))}</span>` : `<span class="chip warn">${esc(labelText(v.praxiproof))}</span>`}</td></tr>`).join("")}
+      </tbody></table><p class="muted small">${esc(t("eval.baseline_note"))}</p></section>` : ""}
+    ${d.stepfun ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
+      <table class="eval-table"><thead><tr><th>${t("eval.col_model")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_rules")}</th></tr></thead><tbody>
+      ${d.stepfun.runs.map((r) => `<tr><td>${esc(r.model)}</td><td>${r.seconds}s</td><td>${r.error ? `<span class="chip bad">${esc(r.error)}</span>` : `${r.rules}${r.rejected ? ` <span class="muted small">(${esc(t("eval.rejected", { n: r.rejected }))})</span>` : ""}`}</td></tr>`).join("")}
+      </tbody></table><p class="muted small">${esc(t("eval.stepfun_note"))}</p></section>` : ""}`;
 }
 
 async function renderSettings() {
@@ -672,7 +751,7 @@ async function render(keepScroll = false) {
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === navView));
   const scroll = window.scrollY;
   if (!keepScroll) view.innerHTML = `<p class="empty">${t("common.loading")}</p>`;
-  const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), pipeline: () => renderPipeline(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, settings: renderSettings };
+  const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), pipeline: () => renderPipeline(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, evaluation: renderEvaluation, settings: renderSettings };
   try {
     await (routes[route] || renderDashboard)();
   } catch (err) {

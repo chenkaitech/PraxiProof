@@ -160,6 +160,10 @@ export PRAXIPROOF_LLM_MODEL=step-3.5-flash   # 实测可用,见下
 - **`ComplianceAgent`**(`runtime/compliance_agent.py`):面向用户,工具是高层只读查询(`get_verification_report`/`search_manual`/`inspect_video`),系统提示词禁止它自己猜测原因。
 - **`RCAAgent`**(`runtime/rca_agent.py`):被 `ComplianceAgent` 通过新增的 `run_root_cause_analysis` 工具委托,拿到的是更底层的原始数据(`get_raw_observation` 返回所有事件,包含被置信度阈值过滤掉的弱置信度事件;`get_alignment` 返回每个原始标签有没有被正确映射到规则词表),把失败归因到 `VIDEO_GAP`/`LOW_CONFIDENCE`/`LABEL_MISMATCH`/`BOUNDARY_UNCERTAINTY`/`GENUINE_VIOLATION` 五类之一。返回契约是一行 `RCA_RESULT:` + 单行 JSON,调用方按字段消费,不解析自然语言——这个"严格结构化返回、由调用方委托而不是自己现场分析"的模式,是照着 NVIDIA `sop-rca-plugin` 的设计抄的(见前文对 `data/sopbp-src` 的分析)。
 
+这套协作在界面里是可见的:运行详情页里每条未通过的规则都有"为什么没通过?"按钮,点击后直接调用 RCA agent,现场展示它调用了哪些原始数据工具、归到哪一类、依据和建议(`POST /api/runs/{id}/verdicts/{rule}/analyze`);在"询问合规智能体"里提问时,回答下方会展开完整的协作轨迹——Compliance Agent 的每次工具调用,以及它委托 RCA agent 之后 RCA agent 自己的工具调用和结构化结论(`/api/agent/ask` 的 `tool_calls` 里带 `sub_trace`)。侧边栏的"评测"页(`/api/evaluation`)把本文的微调消融、VLM 选型、与直接问 VLM 的对照、StepFun 对比集中呈现,数据直接读 `docs/eval/*.json`,不是手写进页面的。
+
+真实模型的输出格式并不总是听话:本地 qwen3.6 会省略 `RCA_RESULT:` 前缀、把 JSON 排成多行,最初严格的解析器在真机上 3 次全部失败(mock 测试全过)。现在改成取回复里第一个合法的 JSON 对象并校验 `category` 是否属于五类之一。
+
 两个 agent 用的是同一个 `LLM` 客户端(`OllamaClient`/`OpenAICompatibleClient` 皆可),但系统提示词、工具集、返回契约完全独立,是真正的委托关系而不是同一个 prompt 里塞更多工具。测试见 `tests/test_rca_agent.py`(用 `FakeLLM` 模拟两个 agent 交替的工具调用序列,不需要真实 LLM)。
 
 ## 技术栈

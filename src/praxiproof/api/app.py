@@ -14,8 +14,10 @@ from pydantic import BaseModel
 
 from praxiproof import __version__
 from praxiproof.config import Settings, get_settings, load_overrides
+from praxiproof.evaluation import load_evaluation
 from praxiproof.llm import LLM, LLMError, build_llm
 from praxiproof.runtime.compliance_agent import ComplianceAgent
+from praxiproof.runtime.rca_agent import RCAAgent
 from praxiproof.service import PraxiProof
 from praxiproof.store import NotFound
 from praxiproof.video.backend import VideoBackend
@@ -69,6 +71,7 @@ def create_app(
     llm: LLM | None = None,
     backend_factory: Callable[[], VideoBackend] | None = None,
     demo_dir: Path | None = None,
+    eval_dir: Path | None = None,
 ) -> FastAPI:
     settings = load_overrides(settings or get_settings())
     llm = llm or build_llm(settings)
@@ -333,6 +336,17 @@ def create_app(
         if item is None:
             raise NotFound(f"evidence {evidence_id} not found")
         return item.model_dump(mode="json") | {"citation": item.citation()}
+
+    @app.post("/api/runs/{run_id}/verdicts/{rule_id}/analyze")
+    def analyze_verdict(run_id: str, rule_id: str) -> dict[str, Any]:
+        result = RCAAgent(core).analyze(run_id, rule_id)
+        if result.get("status") == "failed" and "no verdict" in result.get("error", ""):
+            raise NotFound(result["error"])
+        return result
+
+    @app.get("/api/evaluation")
+    def evaluation() -> dict[str, Any]:
+        return load_evaluation(eval_dir)
 
     @app.post("/api/agent/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

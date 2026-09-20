@@ -72,7 +72,11 @@ class ComplianceAgent:
                 if isinstance(arguments, str):
                     arguments = json.loads(arguments or "{}")
                 result = self._call(name, arguments)
-                trace.append({"tool": name, "arguments": arguments})
+                entry: dict[str, Any] = {"tool": name, "arguments": arguments}
+                if name == "run_root_cause_analysis" and isinstance(result, dict):
+                    # The sub-agent's own tool calls are for the UI trace; the calling model only needs its verdict.
+                    entry |= {"agent": "rca", "sub_trace": result.pop("trace", []), "result": dict(result)}
+                trace.append(entry)
                 messages.append(tool_message(call, name, result))
         return {"answer": "I could not finish within the tool-call limit. Try a narrower question.", "tool_calls": trace}
 

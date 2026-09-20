@@ -68,6 +68,7 @@ def test_rca_agent_uses_raw_tools_and_parses_rca_result(client):
         "confidence": "high",
         "explanation": "both events are seen well past 30s apart",
         "recommendation": "retrain the technician",
+        "trace": [{"tool": "get_verdict_detail", "arguments": {}}, {"tool": "get_raw_observation", "arguments": {}}],
     }
     tool_messages = [m for m in client.fake.chat_calls[-1] if m.get("role") == "tool"]
     assert "reason_code" in tool_messages[0]["content"]
@@ -99,3 +100,62 @@ def test_compliance_agent_delegates_to_rca(client):
     assert "GENUINE_VIOLATION" in r["answer"]
     rca_tool_result = [m for m in client.fake.chat_calls[-1] if m.get("role") == "tool"][-1]["content"]
     assert '"category": "GENUINE_VIOLATION"' in rca_tool_result
+
+
+def test_compliance_trace_embeds_the_rca_agents_own_tool_calls(client):
+    run_id = _run(client)
+    client.fake.chat_replies = [
+        {"role": "assistant", "content": "", "tool_calls": [{"id": "c1", "function": {"name": "run_root_cause_analysis", "arguments": {"run_id": run_id, "rule_id": "R-003"}}}]},
+        {"role": "assistant", "content": "", "tool_calls": [{"id": "c2", "function": {"name": "get_raw_observation", "arguments": {}}}]},
+        {"role": "assistant", "content": 'RCA_RESULT:\n{"category": "GENUINE_VIOLATION", "confidence": "high", "explanation": "e", "recommendation": "r"}'},
+        {"role": "assistant", "content": "done"},
+    ]
+
+    trace = client.post("/api/agent/ask", json={"question": "why?", "run_id": run_id}).json()["tool_calls"]
+
+    assert trace[0]["agent"] == "rca"
+    assert [s["tool"] for s in trace[0]["sub_trace"]] == ["get_raw_observation"]
+    assert trace[0]["result"]["category"] == "GENUINE_VIOLATION" and "trace" not in trace[0]["result"]
+    seen_by_model = [m for m in client.fake.chat_calls[-1] if m.get("role") == "tool"][-1]
+    assert "sub_trace" not in seen_by_model["content"] and seen_by_model["tool_call_id"] == "c1"
+
+
+def test_analyze_endpoint_runs_the_rca_agent_for_one_rule(client):
+    run_id = _run(client)
+    client.fake.chat_replies = [
+        {"role": "assistant", "content": 'RCA_RESULT:\n{"category": "GENUINE_VIOLATION", "confidence": "medium", "explanation": "e", "recommendation": "r"}'}
+    ]
+    r = client.post(f"/api/runs/{run_id}/verdicts/R-003/analyze")
+    assert r.status_code == 200 and r.json()["category"] == "GENUINE_VIOLATION" and r.json()["trace"] == []
+    assert client.post(f"/api/runs/{run_id}/verdicts/R-999/analyze").status_code == 404
+
+
+def test_evaluation_endpoint_reports_the_measured_results(client):
+    data = client.get("/api/evaluation").json()
+    shipped = next(b for b in data["backends"] if b["shipped"])
+    assert (shipped["id"], shipped["f1"]) == ("ddm_vlm_tuned", 0.971)
+    assert data["baseline"]["violating"] == {"n": 4, "praxiproof_correct": 4, "samples": 12, "baseline_correct": 4, "baseline_false_compliant": 6}
+    assert data["baseline"]["compliant"]["praxiproof_cleared"] == 0
+    assert [a["id"] for a in data["agents"]] == ["compliance", "rca"] and "run_root_cause_analysis" in data["agents"][0]["tools"]
+    assert data["vlm_selection"][0]["model"] == "gemma4:31b"
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        'RCA_RESULT:\n{"category": "LOW_CONFIDENCE", "confidence": "high", "explanation": "e", "recommendation": "r"}',
+        '```json\n{\n  "category": "LOW_CONFIDENCE",\n  "confidence": "high",\n  "explanation": "e",\n  "recommendation": "r"\n}\n```',
+        'Here is my analysis: {"note": "ignore"} and the result {"category": "LOW_CONFIDENCE", "confidence": "high", "explanation": "e", "recommendation": "r"}',
+    ],
+)
+def test_rca_result_parsing_tolerates_how_real_models_format_it(client, reply):
+    run_id = _run(client)
+    client.fake.chat_replies = [{"role": "assistant", "content": reply}]
+    result = RCAAgent(client.app.state.core).analyze(run_id, "R-003")
+    assert result["status"] == "ok" and result["category"] == "LOW_CONFIDENCE" and result["explanation"] == "e"
+
+
+def test_rca_result_with_an_unknown_category_is_rejected(client):
+    run_id = _run(client)
+    client.fake.chat_replies = [{"role": "assistant", "content": '{"category": "MAYBE_BAD_LUCK", "explanation": "e"}'}]
+    assert RCAAgent(client.app.state.core).analyze(run_id, "R-003")["status"] == "failed"
