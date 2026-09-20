@@ -3,6 +3,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from praxiproof.runtime.rca_agent import RCAAgent
+from praxiproof.runtime.tool import STRING, tool
 from praxiproof.service import PraxiProof
 from praxiproof.store import NotFound
 
@@ -12,29 +14,26 @@ SYSTEM_PROMPT = (
     "skill. For any question about whether a rule was followed, call get_verification_report first and report its "
     "status and measured values exactly; never recompute times or overrule a verdict yourself. Every claim about a "
     "rule must cite the manual page or section from manual_evidence, and every claim about what happened must cite "
-    "the video time range from video_evidence; do not cite bare evidence ids. If a rule is UNVERIFIED or INSUFFICIENT_EVIDENCE, say so plainly instead of guessing."
+    "the video time range from video_evidence; do not cite bare evidence ids. If a rule is UNVERIFIED or "
+    "INSUFFICIENT_EVIDENCE, say so plainly instead of guessing. If the user asks WHY a rule is not PASS — not just "
+    "what its status is — call run_root_cause_analysis after get_verification_report and report its category and "
+    "explanation; do not speculate about the cause yourself."
 )
 
-
-def _tool(name: str, description: str, properties: dict[str, Any], required: list[str]) -> dict[str, Any]:
-    return {
-        "type": "function",
-        "function": {
-            "name": name,
-            "description": description,
-            "parameters": {"type": "object", "properties": properties, "required": required},
-        },
-    }
-
-
-_STRING = {"type": "string"}
-
 TOOLS = [
-    _tool("search_manual", "Search the manual text for passages about a topic.", {"manual_id": _STRING, "query": _STRING}, ["manual_id", "query"]),
-    _tool("inspect_video", "List the events observed in the video of a verification run, with time ranges.", {"run_id": _STRING}, ["run_id"]),
-    _tool("get_verification_report", "Get every rule verdict for a verification run.", {"run_id": _STRING}, ["run_id"]),
-    _tool("show_evidence", "Show the full evidence record (manual quote or video segment) for an evidence id.", {"evidence_id": _STRING}, ["evidence_id"]),
-    _tool("load_verified_skill", "Load the SKILL.md compiled from a verification run, if one exists.", {"run_id": _STRING}, ["run_id"]),
+    tool("search_manual", "Search the manual text for passages about a topic.", {"manual_id": STRING, "query": STRING}, ["manual_id", "query"]),
+    tool("inspect_video", "List the events observed in the video of a verification run, with time ranges.", {"run_id": STRING}, ["run_id"]),
+    tool("get_verification_report", "Get every rule verdict for a verification run.", {"run_id": STRING}, ["run_id"]),
+    tool("show_evidence", "Show the full evidence record (manual quote or video segment) for an evidence id.", {"evidence_id": STRING}, ["evidence_id"]),
+    tool("load_verified_skill", "Load the SKILL.md compiled from a verification run, if one exists.", {"run_id": STRING}, ["run_id"]),
+    tool(
+        "run_root_cause_analysis",
+        "Delegate to a specialist agent that inspects raw observation and alignment data (not just the "
+        "rendered reason) to explain WHY a specific rule's verdict is VIOLATION, UNVERIFIED or "
+        "INSUFFICIENT_EVIDENCE. Use this before speculating about causes yourself.",
+        {"run_id": STRING, "rule_id": STRING},
+        ["run_id", "rule_id"],
+    ),
 ]
 
 
@@ -48,6 +47,7 @@ class ComplianceAgent:
             "get_verification_report": self.get_verification_report,
             "show_evidence": self.show_evidence,
             "load_verified_skill": self.load_verified_skill,
+            "run_root_cause_analysis": self.run_root_cause_analysis,
         }
 
     def ask(self, question: str, run_id: str | None = None, language: str = "en") -> dict[str, Any]:
@@ -146,3 +146,6 @@ class ComplianceAgent:
         if skill is None:
             return {"error": f"no skill compiled for {run_id} yet"}
         return {"skill_id": skill["id"], "name": skill["name"], "skill_md": self.app.skill_markdown(skill["id"])}
+
+    def run_root_cause_analysis(self, run_id: str, rule_id: str) -> dict[str, Any]:
+        return RCAAgent(self.app).analyze(run_id, rule_id)

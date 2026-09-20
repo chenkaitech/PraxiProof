@@ -35,6 +35,9 @@ manual (PDF/HTML)                 video (mp4)
                           │                   + skill-card.md      │
                           ▼                   + BENCHMARK.md       │
                   runtime/compliance_agent.py (tool-calling, read-only)
+                          │ delegates "why did this fail?" via run_root_cause_analysis
+                          ▼
+                  runtime/rca_agent.py (separate prompt + raw-data tools)
 ```
 
 前端是 FastAPI 内置的静态双语(中/英)单页应用(`src/praxiproof/api/static/`),后端 `src/praxiproof/api/app.py` 暴露手册编译、视频上传、一键 pipeline、verdict 复核、Skill 下载、Compliance Agent 问答等 REST 接口。
@@ -87,6 +90,15 @@ export PRAXIPROOF_LLM_MODEL=step-2-16k       # 换成实际的 StepFun 模型名
 - **BENCHMARK.md**:`compiler/benchmark.py` 把 demo 三段录像(A/B/C)对着人工标注的期望 verdict 跑一遍,映射成 Correctness / Discoverability / Effectiveness / Security / Efficiency 五个维度。当前 Efficiency 和"带 skill / 不带 skill 的 agent 对比"这两项需要连上真实 Ollama 才能测,文档里如实标注为"未测量",不编造数字。
 
 `ComplianceAgent`(`src/praxiproof/runtime/compliance_agent.py`)本身就是这份 Skill 在运行时的体现:它只能通过只读工具查证据,不能自己重新计算或推翻 verdict。
+
+## 多智能体协同:Compliance Agent 委托 RCA Agent
+
+回答"这条规则是不是过了"只需要读 verdict;但回答"为什么没过"需要看 verdict 背后没有被渲染出来的原始数据——观测到的每个事件的置信度、时间不确定度、以及它在对齐阶段有没有被正确映射到规则用到的词表。把这部分逻辑塞进 `ComplianceAgent` 会让它的工具集和系统提示词膨胀,而且这是两种不同的推理:一个是"查表复述",一个是"排查归因"。所以拆成了两个独立 prompt、独立工具集的 agent:
+
+- **`ComplianceAgent`**(`runtime/compliance_agent.py`):面向用户,工具是高层只读查询(`get_verification_report`/`search_manual`/`inspect_video`),系统提示词禁止它自己猜测原因。
+- **`RCAAgent`**(`runtime/rca_agent.py`):被 `ComplianceAgent` 通过新增的 `run_root_cause_analysis` 工具委托,拿到的是更底层的原始数据(`get_raw_observation` 返回所有事件,包含被置信度阈值过滤掉的弱置信度事件;`get_alignment` 返回每个原始标签有没有被正确映射到规则词表),把失败归因到 `VIDEO_GAP`/`LOW_CONFIDENCE`/`LABEL_MISMATCH`/`BOUNDARY_UNCERTAINTY`/`GENUINE_VIOLATION` 五类之一。返回契约是一行 `RCA_RESULT:` + 单行 JSON,调用方按字段消费,不解析自然语言——这个"严格结构化返回、由调用方委托而不是自己现场分析"的模式,是照着 NVIDIA `sop-rca-plugin` 的设计抄的(见前文对 `data/sopbp-src` 的分析)。
+
+两个 agent 用的是同一个 `LLM` 客户端(`OllamaClient`/`OpenAICompatibleClient` 皆可),但系统提示词、工具集、返回契约完全独立,是真正的委托关系而不是同一个 prompt 里塞更多工具。测试见 `tests/test_rca_agent.py`(用 `FakeLLM` 模拟两个 agent 交替的工具调用序列,不需要真实 LLM)。
 
 ## 技术栈
 
