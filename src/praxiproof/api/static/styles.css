@@ -179,7 +179,9 @@ video { width: 100%; border-radius: 10px; background: #000; }
 .skill-md { white-space: pre-wrap; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.55; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 18px; max-height: 70vh; overflow: auto; }
 .chat { display: flex; flex-direction: column; gap: 10px; }
 .chat textarea { width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: inherit; resize: vertical; }
-.chat .answer { white-space: pre-wrap; background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.chat .answer p { margin: 0 0 8px; }
+.chat .answer ul { margin: 0 0 8px; padding-left: 20px; }
+.chat .answer {  background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .empty { color: var(--slate); padding: 24px; text-align: center; }
 .error-text { color: var(--red); }
 .settings-form { display: flex; flex-direction: column; gap: 14px; max-width: 760px; }

@@ -452,7 +452,7 @@ async function renderRun(id) {
     $("#answer").innerHTML = `<p>${ICON.spin} ${esc(t("common.thinking"))}</p>`;
     try {
       const r = await api("/api/agent/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, run_id: run.id, language: LANG }) });
-      $("#answer").innerHTML = `<div class="answer">${esc(r.answer)}</div><p class="muted">${esc(t("run.tools", { tools: r.tool_calls.map((c) => c.tool).join(", ") || t("common.none") }))}</p>`;
+      $("#answer").innerHTML = `<div class="answer">${mdLite(r.answer)}</div><p class="muted">${esc(t("run.tools", { tools: r.tool_calls.map((c) => c.tool).join(", ") || t("common.none") }))}</p>`;
     } catch (err) {
       $("#answer").innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
     }
@@ -643,6 +643,27 @@ async function refreshHealth() {
   }
 }
 
+// Minimal, XSS-safe markdown for agent answers: **bold**, `code`, "* item" bullets, blank-line paragraphs.
+function mdLite(text) {
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const out = [];
+  let list = false;
+  for (const line of String(text).split("\n")) {
+    const item = line.match(/^\s*[*-]\s+(.*)$/);
+    if (item) {
+      if (!list) out.push("<ul>");
+      list = true;
+      out.push(`<li>${inline(item[1])}</li>`);
+      continue;
+    }
+    if (list) out.push("</ul>");
+    list = false;
+    if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
 async function render(keepScroll = false) {
   const token = ++state.renderToken;
   clearTimeout(state.pollTimer);
@@ -650,6 +671,7 @@ async function render(keepScroll = false) {
   const navView = { run: "runs", pipeline: "runs", manual: "manuals", skill: "skills" }[route] || route;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === navView));
   const scroll = window.scrollY;
+  if (!keepScroll) view.innerHTML = `<p class="empty">${t("common.loading")}</p>`;
   const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), pipeline: () => renderPipeline(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, settings: renderSettings };
   try {
     await (routes[route] || renderDashboard)();
