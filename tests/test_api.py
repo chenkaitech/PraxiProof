@@ -189,3 +189,13 @@ def test_health_and_index(client):
     assert "PraxiProof" in index.text and index.headers["cache-control"] == "no-cache"
     assert '/static/app.js?v=' in index.text and '/static/i18n.js?v=' in index.text and '/static/styles.css?v=' in index.text
     assert client.get("/static/i18n.js").headers["cache-control"] == "no-cache"
+
+
+def test_manual_that_compiles_to_zero_rules_fails_instead_of_looking_ready(settings):
+    empty = FakeLLM(json_handler=lambda *_: {"procedure": "P", "sequence": [], "events": [], "requirements": []})
+    with TestClient(create_app(settings, llm=empty, backend_factory=FakeBackend, demo_dir=DEMO_DIR)) as c:
+        html = (DEMO_DIR / "manuals" / "dgx-h100-front-fan-replacement.html").read_bytes()
+        upload = c.post("/api/manuals", files={"file": ("fan.html", html, "text/html")}, data={"procedure": "Front Fan Module Replacement"})
+        record = c.get(f"/api/manuals/{upload.json()['id']}").json()
+        assert record["status"] == "failed"
+        assert "no verifiable rules" in record["error"]

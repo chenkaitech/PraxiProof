@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from praxiproof.ir.verification import Status
-from praxiproof.runtime.tool import STRING, tool
+from praxiproof.runtime.tool import STRING, tool, tool_message
 from praxiproof.service import PraxiProof
 from praxiproof.store import NotFound
 
@@ -103,7 +103,7 @@ class RCAAgent:
                 if isinstance(arguments, str):
                     arguments = json.loads(arguments or "{}")
                 result = self._call(handlers, name, arguments)
-                messages.append({"role": "tool", "tool_name": name, "content": json.dumps(result, default=str)[:12000]})
+                messages.append(tool_message(call, name, result))
         return {"status": "failed", "error": "root cause analysis did not conclude within the tool-call limit"}
 
     def _call(self, handlers: dict[str, Any], name: str, arguments: dict[str, Any]) -> Any:

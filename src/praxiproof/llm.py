@@ -1,5 +1,6 @@
 import base64
 import json
+import time
 from typing import TYPE_CHECKING, Any, Protocol
 
 import httpx
@@ -135,18 +136,33 @@ class OpenAICompatibleClient:
     `think` (Ollama's thinking-mode toggle) has no standard OpenAI equivalent and is ignored here.
     """
 
-    def __init__(self, base_url: str, api_key: str | None = None, timeout: float = 900.0):
+    # Cloud endpoints drop connections and rate-limit; a manual compile is minutes of work, so retry those.
+    # ReadTimeout is deliberately not retried: it means a slow generation, and repeating it would triple the wait.
+    _RETRY_ERRORS = (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ConnectTimeout)
+    _RETRY_STATUS = (429, 500, 502, 503, 504)
+
+    def __init__(self, base_url: str, api_key: str | None = None, timeout: float = 900.0, attempts: int = 3):
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         self._client = httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout, headers=headers)
+        self._attempts = attempts
 
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            response = self._client.post(path, json=payload)
-        except httpx.HTTPError as exc:
-            raise LLMError(f"OpenAI-compatible request to {path} failed: {exc}") from exc
-        if response.status_code != 200:
-            raise LLMError(f"{path} returned {response.status_code}: {response.text[:500]}")
-        return response.json()
+        for attempt in range(1, self._attempts + 1):
+            last = attempt == self._attempts
+            try:
+                response = self._client.post(path, json=payload)
+            except self._RETRY_ERRORS as exc:
+                if last:
+                    raise LLMError(f"OpenAI-compatible request to {path} failed after {attempt} attempts: {exc}") from exc
+            except httpx.HTTPError as exc:
+                raise LLMError(f"OpenAI-compatible request to {path} failed: {exc}") from exc
+            else:
+                if response.status_code == 200:
+                    return response.json()
+                if response.status_code not in self._RETRY_STATUS or last:
+                    raise LLMError(f"{path} returned {response.status_code}: {response.text[:500]}")
+            time.sleep(2**attempt)
+        raise AssertionError("unreachable")
 
     def chat_json(
         self,
@@ -170,6 +186,8 @@ class OpenAICompatibleClient:
             raise LLMError(f"Model {model} returned non-JSON output: {content[:500]}") from exc
 
     def chat(self, model: str, messages: list[Message], tools: list[dict[str, Any]] | None = None) -> Message:
+        # `tool_name` is Ollama's field for a tool result; strict OpenAI-style servers want only tool_call_id.
+        messages = [{k: v for k, v in m.items() if k != "tool_name"} for m in messages]
         payload: dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
         if tools:
             payload["tools"] = tools

@@ -92,6 +92,10 @@ class PraxiProof:
             result = compile_requirements(doc, self.llm, self.settings.llm_model, record.get("procedure_hint"))
             self.store.put_evidence(result.evidence)
             rs = result.requirement_set
+            if not rs.requirements:
+                # A run against zero rules would vacuously report PASS — never let that look like a verification.
+                rejected = f" ({len(result.rejected)} candidate rule(s) were rejected as invalid)" if result.rejected else ""
+                raise ValueError(f"no verifiable rules could be extracted from this manual{rejected}; try another model or recompile")
             self.store.update(
                 "manuals",
                 manual_id,

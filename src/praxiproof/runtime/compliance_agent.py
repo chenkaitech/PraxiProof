@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from praxiproof.runtime.rca_agent import RCAAgent
-from praxiproof.runtime.tool import STRING, tool
+from praxiproof.runtime.tool import STRING, tool, tool_message
 from praxiproof.service import PraxiProof
 from praxiproof.store import NotFound
 
@@ -73,7 +73,7 @@ class ComplianceAgent:
                     arguments = json.loads(arguments or "{}")
                 result = self._call(name, arguments)
                 trace.append({"tool": name, "arguments": arguments})
-                messages.append({"role": "tool", "tool_name": name, "content": json.dumps(result, default=str)[:12000]})
+                messages.append(tool_message(call, name, result))
         return {"answer": "I could not finish within the tool-call limit. Try a narrower question.", "tool_calls": trace}
 
     def _call(self, name: str, arguments: dict[str, Any]) -> Any:
