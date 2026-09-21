@@ -41,6 +41,7 @@ def main() -> None:
     refs.add_argument("--data", type=Path, required=True, help="the extracted server_fan directory")
     refs.add_argument("--videos", nargs="+", required=True, help="training recordings to take frames from")
     refs.add_argument("--per-group", type=int, default=3)
+    refs.add_argument("--held-out", nargs="*", help="recordings under evaluation, which must not be used (default: the dataset's test split)")
     refs.add_argument("--out", type=Path, required=True)
 
     edits = sub.add_parser("make-edits", help="build compliant, missing-step and reordered copies of a SOP recording")
@@ -67,7 +68,7 @@ def main() -> None:
     elif args.command == "build-references":
         from praxiproof.eval.nvidia_sop import build_references
 
-        examples = build_references(args.data, args.videos, args.out, args.per_group)
+        examples = build_references(args.data, args.videos, args.out, args.per_group, held_out=set(args.held_out) if args.held_out is not None else None)
         print(json.dumps({x.label: list(x.sources) for x in examples}, indent=2))
     elif args.command == "make-edits":
         from praxiproof.eval.nvidia_sop import make_edits

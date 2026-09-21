@@ -1,5 +1,5 @@
 """Measured results behind the "Evaluation" page: the video-backend ablation, VLM selection, the direct-VLM
-baseline comparison and the StepFun benchmark. The numbers live in docs/eval/*.json (raw outputs copied from
+baseline comparison, the cross-validation summary and the StepFun benchmark. The numbers live in docs/eval/*.json (raw outputs copied from
 the DGX Spark runs); this module only reshapes them, it never computes or invents a score."""
 
 import json
@@ -115,6 +115,7 @@ def load_evaluation(eval_dir: Path | None = None) -> dict[str, Any]:
         "backends": _backends(eval_dir),
         "vlm_selection": _vlm_selection(eval_dir),
         "baseline": _baseline(eval_dir),
+        "cross_validation": _load(eval_dir, "cv_summary"),
         "stepfun": _load(eval_dir, "stepfun_compile_benchmark"),
         "agents": _agents(),
     }

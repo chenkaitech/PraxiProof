@@ -1,0 +1,212 @@
+{
+  "protocol": {
+    "recordings": 12,
+    "folds": {
+      "fold1": [
+        "Install_1",
+        "Install_12",
+        "Install_6"
+      ],
+      "fold2": [
+        "Install_13",
+        "Install_3",
+        "Install_7"
+      ],
+      "fold3": [
+        "Install_10",
+        "Install_4",
+        "Install_8"
+      ],
+      "fold4": [
+        "Install_11",
+        "Install_5",
+        "Install_9"
+      ]
+    },
+    "checkpoints": {
+      "fold1": "fold1: epoch_epoch=001-val/f1_score=0.844.ckpt",
+      "fold2": "fold2: epoch_epoch=000-val/f1_score=0.826.ckpt",
+      "fold3": "fold3: epoch_epoch=001-val/f1_score=0.816.ckpt",
+      "fold4": "fold4: epoch_epoch=000-val/f1_score=0.800.ckpt"
+    },
+    "note": "Each fold retrains DDM-Net and rebuilds the reference images from that fold's own training recordings; a held-out recording is never seen by any component. Confidence intervals bootstrap over recordings."
+  },
+  "ddm_vlm_cv": {
+    "per_fold": {
+      "fold1": {
+        "precision": 0.794,
+        "recall": 1.0,
+        "f1": 0.885,
+        "recordings": [
+          "Install_1",
+          "Install_12",
+          "Install_6"
+        ]
+      },
+      "fold2": {
+        "precision": 0.844,
+        "recall": 1.0,
+        "f1": 0.915,
+        "recordings": [
+          "Install_13",
+          "Install_3",
+          "Install_7"
+        ]
+      },
+      "fold3": {
+        "precision": 0.852,
+        "recall": 0.852,
+        "f1": 0.852,
+        "recordings": [
+          "Install_10",
+          "Install_4",
+          "Install_8"
+        ]
+      },
+      "fold4": {
+        "precision": 0.818,
+        "recall": 1.0,
+        "f1": 0.9,
+        "recordings": [
+          "Install_11",
+          "Install_5",
+          "Install_9"
+        ]
+      }
+    },
+    "all": {
+      "recordings": 12,
+      "gold_events": 108,
+      "precision": 0.825,
+      "recall": 0.963,
+      "f1": 0.889,
+      "f1_ci95": [
+        0.846,
+        0.926
+      ],
+      "mean_sequence_similarity": 0.831,
+      "mean_seconds_per_video": 514.3
+    },
+    "untouched": {
+      "recordings": 10,
+      "gold_events": 90,
+      "precision": 0.804,
+      "recall": 0.956,
+      "f1": 0.873,
+      "f1_ci95": [
+        0.828,
+        0.908
+      ],
+      "mean_sequence_similarity": 0.807,
+      "mean_seconds_per_video": 526.1
+    }
+  },
+  "local_vlm": {
+    "all": {
+      "recordings": 12,
+      "gold_events": 108,
+      "precision": 0.691,
+      "recall": 0.435,
+      "f1": 0.534,
+      "f1_ci95": [
+        0.488,
+        0.58
+      ],
+      "mean_sequence_similarity": 0.509,
+      "mean_seconds_per_video": 201.3
+    },
+    "untouched": {
+      "recordings": 10,
+      "gold_events": 90,
+      "precision": 0.667,
+      "recall": 0.422,
+      "f1": 0.517,
+      "f1_ci95": [
+        0.471,
+        0.566
+      ],
+      "mean_sequence_similarity": 0.511,
+      "mean_seconds_per_video": 201.6
+    }
+  },
+  "paired_f1_difference": {
+    "all": {
+      "difference": 0.355,
+      "ci95": [
+        0.286,
+        0.42
+      ],
+      "recordings": 12
+    },
+    "untouched": {
+      "difference": 0.356,
+      "ci95": [
+        0.276,
+        0.43
+      ],
+      "recordings": 10
+    }
+  },
+  "per_video": [
+    {
+      "video": "Install_1",
+      "ddm_vlm_cv_f1": 0.75,
+      "local_vlm_f1": 0.588
+    },
+    {
+      "video": "Install_3",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.667
+    },
+    {
+      "video": "Install_4",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.429
+    },
+    {
+      "video": "Install_5",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.462
+    },
+    {
+      "video": "Install_6",
+      "ddm_vlm_cv_f1": 0.947,
+      "local_vlm_f1": 0.462
+    },
+    {
+      "video": "Install_7",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.429
+    },
+    {
+      "video": "Install_8",
+      "ddm_vlm_cv_f1": 0.889,
+      "local_vlm_f1": 0.533
+    },
+    {
+      "video": "Install_9",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.462
+    },
+    {
+      "video": "Install_10",
+      "ddm_vlm_cv_f1": 0.75,
+      "local_vlm_f1": 0.588
+    },
+    {
+      "video": "Install_11",
+      "ddm_vlm_cv_f1": 0.9,
+      "local_vlm_f1": 0.5
+    },
+    {
+      "video": "Install_12",
+      "ddm_vlm_cv_f1": 1.0,
+      "local_vlm_f1": 0.571
+    },
+    {
+      "video": "Install_13",
+      "ddm_vlm_cv_f1": 0.947,
+      "local_vlm_f1": 0.667
+    }
+  ]
+}

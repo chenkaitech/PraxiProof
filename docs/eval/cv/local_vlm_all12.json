@@ -1,0 +1,1280 @@
+{
+  "summary": {
+    "videos": 12,
+    "backend": "local_vlm",
+    "detection@0.3": {
+      "precision": 0.691,
+      "recall": 0.435,
+      "f1": 0.534
+    },
+    "detection@0.5": {
+      "precision": 0.5,
+      "recall": 0.315,
+      "f1": 0.386
+    },
+    "mean_sequence_similarity": 0.509,
+    "mean_seconds_per_video": 201.3
+  },
+  "videos": {
+    "Install_1": {
+      "gold_events": 9,
+      "predicted_events": 8,
+      "predicted_counts": {
+        "fan_installed": 5,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.778,
+      "matched@0.3": 5,
+      "mean_start_error_s": 3.25,
+      "mean_end_error_s": 1.8,
+      "mean_iou@0.3": 0.64,
+      "matched@0.5": 5,
+      "seconds": 301.8,
+      "video_duration": 133.5,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 8.0,
+          "end": 23.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 22.999555555555556,
+          "end": 28.333444444444442,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 31.00046153846154,
+          "end": 38.38453846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 48.99955555555556,
+          "end": 52.55544444444444,
+          "confidence": 0.9
+        },
+        {
+          "label": "fan_installed",
+          "start": 63.888555555555556,
+          "end": 71.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 91.00045454545455,
+          "end": 100.99954545454545,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 104.0,
+          "end": 109.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 123.000203,
+          "end": 129.70279699999998,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 5.01,
+          "end": 28.96
+        },
+        {
+          "label": "fan_installed",
+          "start": 28.96,
+          "end": 38.74
+        },
+        {
+          "label": "fan_installed",
+          "start": 38.74,
+          "end": 53.55
+        },
+        {
+          "label": "fan_installed",
+          "start": 53.55,
+          "end": 78.45
+        },
+        {
+          "label": "fan_installed",
+          "start": 78.45,
+          "end": 86.92
+        },
+        {
+          "label": "fan_installed",
+          "start": 86.92,
+          "end": 101.43
+        },
+        {
+          "label": "psu_installed",
+          "start": 101.43,
+          "end": 109.61
+        },
+        {
+          "label": "psu_installed",
+          "start": 109.61,
+          "end": 118.42
+        },
+        {
+          "label": "cover_installed",
+          "start": 118.42,
+          "end": 131.33
+        }
+      ]
+    },
+    "Install_3": {
+      "gold_events": 9,
+      "predicted_events": 6,
+      "predicted_counts": {
+        "fan_installed": 3,
+        "psu_installed": 1,
+        "cover_installed": 2
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.556,
+      "matched@0.3": 5,
+      "mean_start_error_s": 3.15,
+      "mean_end_error_s": 2.05,
+      "mean_iou@0.3": 0.523,
+      "matched@0.5": 3,
+      "seconds": 194.9,
+      "video_duration": 84.08,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 19.00046153846154,
+          "end": 30.99953846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 38.99955555555556,
+          "end": 47.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 48.99955555555556,
+          "end": 57.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 55.00046153846154,
+          "end": 58.69253846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 71.92346153846154,
+          "end": 78.38453846153847,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 85.3294714,
+          "end": 86.286286,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 8.14,
+          "end": 16.48
+        },
+        {
+          "label": "fan_installed",
+          "start": 16.48,
+          "end": 22.16
+        },
+        {
+          "label": "fan_installed",
+          "start": 22.16,
+          "end": 33.57
+        },
+        {
+          "label": "fan_installed",
+          "start": 33.57,
+          "end": 41.31
+        },
+        {
+          "label": "fan_installed",
+          "start": 41.31,
+          "end": 46.78
+        },
+        {
+          "label": "fan_installed",
+          "start": 46.78,
+          "end": 52.69
+        },
+        {
+          "label": "psu_installed",
+          "start": 52.69,
+          "end": 60.03
+        },
+        {
+          "label": "psu_installed",
+          "start": 60.03,
+          "end": 66.17
+        },
+        {
+          "label": "cover_installed",
+          "start": 66.17,
+          "end": 80.21
+        }
+      ]
+    },
+    "Install_4": {
+      "gold_events": 9,
+      "predicted_events": 5,
+      "predicted_counts": {
+        "psu_installed": 2,
+        "fan_installed": 2,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.444,
+      "matched@0.3": 3,
+      "mean_start_error_s": 2.51,
+      "mean_end_error_s": 3.34,
+      "mean_iou@0.3": 0.445,
+      "matched@0.5": 1,
+      "seconds": 185.0,
+      "video_duration": 86.32,
+      "predicted": [
+        {
+          "label": "psu_installed",
+          "start": 12.999555555555556,
+          "end": 21.000444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 17.0,
+          "end": 33.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 36.99955555555556,
+          "end": 45.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 62.86633333333333,
+          "end": 65.66666666666667,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 79.36414668750001,
+          "end": 83.33885331249999,
+          "confidence": 0.9
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 11.81,
+          "end": 19.12
+        },
+        {
+          "label": "fan_installed",
+          "start": 19.12,
+          "end": 27.66
+        },
+        {
+          "label": "fan_installed",
+          "start": 27.66,
+          "end": 41.11
+        },
+        {
+          "label": "fan_installed",
+          "start": 41.11,
+          "end": 50.02
+        },
+        {
+          "label": "fan_installed",
+          "start": 50.02,
+          "end": 55.99
+        },
+        {
+          "label": "fan_installed",
+          "start": 55.99,
+          "end": 61.7
+        },
+        {
+          "label": "psu_installed",
+          "start": 61.7,
+          "end": 68.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 68.8,
+          "end": 75.11
+        },
+        {
+          "label": "cover_installed",
+          "start": 75.11,
+          "end": 84.88
+        }
+      ]
+    },
+    "Install_5": {
+      "gold_events": 9,
+      "predicted_events": 4,
+      "predicted_counts": {
+        "psu_installed": 2,
+        "fan_installed": 1,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.333,
+      "matched@0.3": 3,
+      "mean_start_error_s": 4.65,
+      "mean_end_error_s": 1.16,
+      "mean_iou@0.3": 0.505,
+      "matched@0.5": 1,
+      "seconds": 170.3,
+      "video_duration": 76.68,
+      "predicted": [
+        {
+          "label": "psu_installed",
+          "start": 17.666555555555558,
+          "end": 23.000444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 19.0005,
+          "end": 39.6255,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 50.84646153846154,
+          "end": 54.53853846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 64.98085714285715,
+          "end": 67.95114285714286,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 11.08,
+          "end": 17.08
+        },
+        {
+          "label": "fan_installed",
+          "start": 17.08,
+          "end": 25.23
+        },
+        {
+          "label": "fan_installed",
+          "start": 25.23,
+          "end": 30.1
+        },
+        {
+          "label": "fan_installed",
+          "start": 30.1,
+          "end": 38.87
+        },
+        {
+          "label": "fan_installed",
+          "start": 38.87,
+          "end": 44.44
+        },
+        {
+          "label": "fan_installed",
+          "start": 44.44,
+          "end": 49.98
+        },
+        {
+          "label": "psu_installed",
+          "start": 49.98,
+          "end": 56.16
+        },
+        {
+          "label": "psu_installed",
+          "start": 56.16,
+          "end": 63.0
+        },
+        {
+          "label": "cover_installed",
+          "start": 63.0,
+          "end": 69.04
+        }
+      ]
+    },
+    "Install_6": {
+      "gold_events": 9,
+      "predicted_events": 4,
+      "predicted_counts": {
+        "fan_installed": 2,
+        "psu_installed": 1,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.444,
+      "matched@0.3": 3,
+      "mean_start_error_s": 1.78,
+      "mean_end_error_s": 0.64,
+      "mean_iou@0.3": 0.683,
+      "matched@0.5": 3,
+      "seconds": 151.1,
+      "video_duration": 62.43,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 6.9995,
+          "end": 33.0005,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 32.99955555555556,
+          "end": 41.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 41.800333333333334,
+          "end": 46.46666666666667,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 55.9286815,
+          "end": 61.5003185,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 2.97,
+          "end": 10.21
+        },
+        {
+          "label": "fan_installed",
+          "start": 10.21,
+          "end": 17.28
+        },
+        {
+          "label": "fan_installed",
+          "start": 17.28,
+          "end": 24.69
+        },
+        {
+          "label": "fan_installed",
+          "start": 24.69,
+          "end": 31.66
+        },
+        {
+          "label": "fan_installed",
+          "start": 31.66,
+          "end": 36.5
+        },
+        {
+          "label": "fan_installed",
+          "start": 36.5,
+          "end": 41.57
+        },
+        {
+          "label": "psu_installed",
+          "start": 41.57,
+          "end": 47.75
+        },
+        {
+          "label": "psu_installed",
+          "start": 47.75,
+          "end": 54.32
+        },
+        {
+          "label": "cover_installed",
+          "start": 54.32,
+          "end": 61.56
+        }
+      ]
+    },
+    "Install_7": {
+      "gold_events": 9,
+      "predicted_events": 5,
+      "predicted_counts": {
+        "fan_installed": 1,
+        "psu_installed": 3,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.444,
+      "matched@0.3": 3,
+      "mean_start_error_s": 2.02,
+      "mean_end_error_s": 4.91,
+      "mean_iou@0.3": 0.512,
+      "matched@0.5": 2,
+      "seconds": 163.9,
+      "video_duration": 66.07,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 4.9995,
+          "end": 29.3745,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 6.555555555555555,
+          "end": 10.111444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 12.999555555555556,
+          "end": 16.555444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 47.00033333333333,
+          "end": 50.73366666666667,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 59.883370875000004,
+          "end": 63.416629125,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 2.2,
+          "end": 8.01
+        },
+        {
+          "label": "fan_installed",
+          "start": 8.01,
+          "end": 16.82
+        },
+        {
+          "label": "fan_installed",
+          "start": 16.82,
+          "end": 22.66
+        },
+        {
+          "label": "fan_installed",
+          "start": 22.66,
+          "end": 30.9
+        },
+        {
+          "label": "fan_installed",
+          "start": 30.9,
+          "end": 36.34
+        },
+        {
+          "label": "fan_installed",
+          "start": 36.34,
+          "end": 45.48
+        },
+        {
+          "label": "psu_installed",
+          "start": 45.48,
+          "end": 52.42
+        },
+        {
+          "label": "psu_installed",
+          "start": 52.42,
+          "end": 58.36
+        },
+        {
+          "label": "cover_installed",
+          "start": 58.36,
+          "end": 63.9
+        }
+      ]
+    },
+    "Install_8": {
+      "gold_events": 9,
+      "predicted_events": 6,
+      "predicted_counts": {
+        "fan_installed": 2,
+        "psu_installed": 3,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.556,
+      "matched@0.3": 4,
+      "mean_start_error_s": 1.35,
+      "mean_end_error_s": 1.23,
+      "mean_iou@0.3": 0.675,
+      "matched@0.5": 4,
+      "seconds": 186.5,
+      "video_duration": 71.54,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 5.769461538461538,
+          "end": 14.999538461538462,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 12.846461538461538,
+          "end": 16.53853846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 24.0,
+          "end": 34.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 50.81845454545455,
+          "end": 55.36354545454545,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 63.0,
+          "end": 63.0,
+          "confidence": 0.4
+        },
+        {
+          "label": "cover_installed",
+          "start": 63.62833333333332,
+          "end": 67.20966666666666,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 5.07,
+          "end": 11.75
+        },
+        {
+          "label": "fan_installed",
+          "start": 11.75,
+          "end": 19.19
+        },
+        {
+          "label": "fan_installed",
+          "start": 19.19,
+          "end": 25.69
+        },
+        {
+          "label": "fan_installed",
+          "start": 25.69,
+          "end": 34.23
+        },
+        {
+          "label": "fan_installed",
+          "start": 34.23,
+          "end": 43.38
+        },
+        {
+          "label": "fan_installed",
+          "start": 43.38,
+          "end": 49.52
+        },
+        {
+          "label": "psu_installed",
+          "start": 49.52,
+          "end": 56.42
+        },
+        {
+          "label": "psu_installed",
+          "start": 56.42,
+          "end": 61.9
+        },
+        {
+          "label": "cover_installed",
+          "start": 61.9,
+          "end": 67.6
+        }
+      ]
+    },
+    "Install_9": {
+      "gold_events": 9,
+      "predicted_events": 4,
+      "predicted_counts": {
+        "fan_installed": 2,
+        "psu_installed": 1,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.333,
+      "matched@0.3": 3,
+      "mean_start_error_s": 6.24,
+      "mean_end_error_s": 1.39,
+      "mean_iou@0.3": 0.522,
+      "matched@0.5": 2,
+      "seconds": 181.9,
+      "video_duration": 89.26,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 11.0,
+          "end": 35.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 26.999555555555556,
+          "end": 34.111444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 37.0,
+          "end": 52.0,
+          "confidence": 0.9
+        },
+        {
+          "label": "cover_installed",
+          "start": 83.00014835714286,
+          "end": 86.57485164285714,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 10.11,
+          "end": 21.09
+        },
+        {
+          "label": "fan_installed",
+          "start": 21.09,
+          "end": 33.3
+        },
+        {
+          "label": "fan_installed",
+          "start": 33.3,
+          "end": 42.14
+        },
+        {
+          "label": "fan_installed",
+          "start": 42.14,
+          "end": 54.12
+        },
+        {
+          "label": "fan_installed",
+          "start": 54.12,
+          "end": 61.06
+        },
+        {
+          "label": "fan_installed",
+          "start": 61.06,
+          "end": 67.17
+        },
+        {
+          "label": "psu_installed",
+          "start": 67.17,
+          "end": 74.51
+        },
+        {
+          "label": "psu_installed",
+          "start": 74.51,
+          "end": 79.51
+        },
+        {
+          "label": "cover_installed",
+          "start": 79.51,
+          "end": 86.92
+        }
+      ]
+    },
+    "Install_10": {
+      "gold_events": 9,
+      "predicted_events": 8,
+      "predicted_counts": {
+        "fan_installed": 4,
+        "psu_installed": 3,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.667,
+      "matched@0.3": 5,
+      "mean_start_error_s": 2.51,
+      "mean_end_error_s": 4.1,
+      "mean_iou@0.3": 0.478,
+      "matched@0.5": 2,
+      "seconds": 247.3,
+      "video_duration": 98.8,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 7.000333333333333,
+          "end": 20.999666666666666,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 18.999555555555556,
+          "end": 22.555444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 27.00046153846154,
+          "end": 38.07653846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 36.77755555555556,
+          "end": 43.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 47.000454545454545,
+          "end": 53.36354545454545,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 56.99955555555556,
+          "end": 61.44444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 76.77755555555555,
+          "end": 80.33344444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 87.00049999999999,
+          "end": 91.9255,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 2.67,
+          "end": 12.95
+        },
+        {
+          "label": "fan_installed",
+          "start": 12.95,
+          "end": 22.36
+        },
+        {
+          "label": "fan_installed",
+          "start": 22.36,
+          "end": 35.34
+        },
+        {
+          "label": "fan_installed",
+          "start": 35.34,
+          "end": 55.06
+        },
+        {
+          "label": "fan_installed",
+          "start": 55.06,
+          "end": 62.7
+        },
+        {
+          "label": "fan_installed",
+          "start": 62.7,
+          "end": 69.27
+        },
+        {
+          "label": "psu_installed",
+          "start": 69.27,
+          "end": 76.61
+        },
+        {
+          "label": "psu_installed",
+          "start": 76.61,
+          "end": 83.95
+        },
+        {
+          "label": "cover_installed",
+          "start": 83.95,
+          "end": 94.13
+        }
+      ]
+    },
+    "Install_11": {
+      "gold_events": 9,
+      "predicted_events": 7,
+      "predicted_counts": {
+        "psu_installed": 3,
+        "fan_installed": 3,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.556,
+      "matched@0.3": 4,
+      "mean_start_error_s": 2.65,
+      "mean_end_error_s": 1.25,
+      "mean_iou@0.3": 0.601,
+      "matched@0.5": 4,
+      "seconds": 233.4,
+      "video_duration": 87.35,
+      "predicted": [
+        {
+          "label": "psu_installed",
+          "start": 8.999555555555556,
+          "end": 17.000444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 15.909454545454546,
+          "end": 21.363545454545452,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 19.0,
+          "end": 29.0,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 34.9995,
+          "end": 41.7505,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 57.666555555555554,
+          "end": 60.333444444444446,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 63.00033333333333,
+          "end": 69.53366666666666,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 81.78488772222222,
+          "end": 86.42611227777778,
+          "confidence": 1.0
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 5.54,
+          "end": 14.38
+        },
+        {
+          "label": "fan_installed",
+          "start": 14.38,
+          "end": 22.36
+        },
+        {
+          "label": "fan_installed",
+          "start": 22.36,
+          "end": 31.03
+        },
+        {
+          "label": "fan_installed",
+          "start": 31.03,
+          "end": 43.51
+        },
+        {
+          "label": "fan_installed",
+          "start": 43.51,
+          "end": 50.12
+        },
+        {
+          "label": "fan_installed",
+          "start": 50.12,
+          "end": 61.66
+        },
+        {
+          "label": "psu_installed",
+          "start": 61.66,
+          "end": 71.47
+        },
+        {
+          "label": "psu_installed",
+          "start": 71.47,
+          "end": 78.01
+        },
+        {
+          "label": "cover_installed",
+          "start": 78.01,
+          "end": 86.12
+        }
+      ]
+    },
+    "Install_12": {
+      "gold_events": 9,
+      "predicted_events": 5,
+      "predicted_counts": {
+        "psu_installed": 2,
+        "fan_installed": 2,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.444,
+      "matched@0.3": 4,
+      "mean_start_error_s": 2.71,
+      "mean_end_error_s": 1.56,
+      "mean_iou@0.3": 0.589,
+      "matched@0.5": 4,
+      "seconds": 207.0,
+      "video_duration": 89.29,
+      "predicted": [
+        {
+          "label": "psu_installed",
+          "start": 17.000333333333334,
+          "end": 30.999666666666666,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 35.666555555555554,
+          "end": 41.00044444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 43.888555555555556,
+          "end": 47.44444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 57.800333333333334,
+          "end": 61.53366666666667,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 74.99969036666667,
+          "end": 88.33630963333333,
+          "confidence": 0.9
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 11.01,
+          "end": 20.69
+        },
+        {
+          "label": "fan_installed",
+          "start": 20.69,
+          "end": 26.96
+        },
+        {
+          "label": "fan_installed",
+          "start": 26.96,
+          "end": 34.4
+        },
+        {
+          "label": "fan_installed",
+          "start": 34.4,
+          "end": 43.94
+        },
+        {
+          "label": "fan_installed",
+          "start": 43.94,
+          "end": 49.48
+        },
+        {
+          "label": "fan_installed",
+          "start": 49.48,
+          "end": 55.36
+        },
+        {
+          "label": "psu_installed",
+          "start": 55.36,
+          "end": 62.2
+        },
+        {
+          "label": "psu_installed",
+          "start": 62.2,
+          "end": 67.9
+        },
+        {
+          "label": "cover_installed",
+          "start": 67.9,
+          "end": 87.75
+        }
+      ]
+    },
+    "Install_13": {
+      "gold_events": 9,
+      "predicted_events": 6,
+      "predicted_counts": {
+        "fan_installed": 3,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "gold_counts": {
+        "fan_installed": 6,
+        "psu_installed": 2,
+        "cover_installed": 1
+      },
+      "sequence_similarity": 0.556,
+      "matched@0.3": 5,
+      "mean_start_error_s": 1.75,
+      "mean_end_error_s": 1.29,
+      "mean_iou@0.3": 0.61,
+      "matched@0.5": 3,
+      "seconds": 192.0,
+      "video_duration": 70.3,
+      "predicted": [
+        {
+          "label": "fan_installed",
+          "start": 10.777555555555555,
+          "end": 16.111444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 13.000333333333334,
+          "end": 23.266666666666666,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 21.00046153846154,
+          "end": 32.99953846153846,
+          "confidence": 0.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 35.666555555555554,
+          "end": 37.44444444444444,
+          "confidence": 0.8
+        },
+        {
+          "label": "psu_installed",
+          "start": 46.1255,
+          "end": 51.7505,
+          "confidence": 0.8
+        },
+        {
+          "label": "cover_installed",
+          "start": 59.9786,
+          "end": 63.894400000000005,
+          "confidence": 0.9
+        }
+      ],
+      "gold": [
+        {
+          "label": "fan_installed",
+          "start": 2.9,
+          "end": 9.91
+        },
+        {
+          "label": "fan_installed",
+          "start": 9.91,
+          "end": 16.88
+        },
+        {
+          "label": "fan_installed",
+          "start": 16.88,
+          "end": 24.29
+        },
+        {
+          "label": "fan_installed",
+          "start": 24.29,
+          "end": 34.8
+        },
+        {
+          "label": "fan_installed",
+          "start": 34.8,
+          "end": 39.37
+        },
+        {
+          "label": "fan_installed",
+          "start": 39.37,
+          "end": 44.74
+        },
+        {
+          "label": "psu_installed",
+          "start": 44.74,
+          "end": 51.58
+        },
+        {
+          "label": "psu_installed",
+          "start": 51.58,
+          "end": 57.62
+        },
+        {
+          "label": "cover_installed",
+          "start": 57.62,
+          "end": 65.67
+        }
+      ]
+    }
+  }
+}

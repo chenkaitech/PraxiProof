@@ -1,0 +1,82 @@
+{
+  "fold1": {
+    "held_out": [
+      "Install_1",
+      "Install_6",
+      "Install_12"
+    ],
+    "val": [
+      "Install_7",
+      "Install_11"
+    ],
+    "train": [
+      "Install_3",
+      "Install_4",
+      "Install_5",
+      "Install_8",
+      "Install_9",
+      "Install_10",
+      "Install_13"
+    ]
+  },
+  "fold2": {
+    "held_out": [
+      "Install_3",
+      "Install_7",
+      "Install_13"
+    ],
+    "val": [
+      "Install_6",
+      "Install_11"
+    ],
+    "train": [
+      "Install_1",
+      "Install_4",
+      "Install_5",
+      "Install_8",
+      "Install_9",
+      "Install_10",
+      "Install_12"
+    ]
+  },
+  "fold3": {
+    "held_out": [
+      "Install_4",
+      "Install_8",
+      "Install_10"
+    ],
+    "val": [
+      "Install_6",
+      "Install_12"
+    ],
+    "train": [
+      "Install_1",
+      "Install_3",
+      "Install_5",
+      "Install_7",
+      "Install_9",
+      "Install_11",
+      "Install_13"
+    ]
+  },
+  "fold4": {
+    "held_out": [
+      "Install_5",
+      "Install_9",
+      "Install_11"
+    ],
+    "val": [
+      "Install_6",
+      "Install_12"
+    ],
+    "train": [
+      "Install_1",
+      "Install_3",
+      "Install_4",
+      "Install_7",
+      "Install_8",
+      "Install_10",
+      "Install_13"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+fold1: epoch_epoch=001-val/f1_score=0.844.ckpt

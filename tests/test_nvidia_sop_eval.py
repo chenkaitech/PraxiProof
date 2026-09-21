@@ -82,3 +82,12 @@ def test_reference_images_refuse_test_recordings(tmp_path):
     (tmp_path / "test" / "Install_12").mkdir(parents=True)
     with pytest.raises(ValueError, match="Install_12"):
         build_references(tmp_path, ["Install_1", "Install_12"], tmp_path / "refs")
+
+
+def test_reference_guard_follows_the_recordings_held_out_in_this_fold(tmp_path):
+    (tmp_path / "test" / "Install_12").mkdir(parents=True)
+    # Install_12 is test data in the default split but training data in a fold that holds out Install_1 instead.
+    with pytest.raises(ValueError, match="Install_1"):
+        build_references(tmp_path, ["Install_1", "Install_3"], tmp_path / "refs", held_out={"Install_1"})
+    # passes the guard (this fake dataset has no video chunks, so the example groups come back without images)
+    assert len(build_references(tmp_path, ["Install_12"], tmp_path / "refs", held_out={"Install_1"})) == 4

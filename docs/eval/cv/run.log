@@ -1,0 +1,13 @@
+=== fold1 09:43:42
+fold1: eval ok 10:08:39
+=== fold2 10:08:39
+fold2: epoch_epoch=000-val/f1_score=0.826.ckpt
+fold2: eval ok 10:57:44
+=== fold3 10:57:44
+fold3: epoch_epoch=001-val/f1_score=0.816.ckpt
+fold3: eval ok 11:46:27
+=== fold4 11:46:27
+fold4: epoch_epoch=000-val/f1_score=0.800.ckpt
+fold4: eval ok 12:39:36
+=== pure VLM baseline on all 12 12:39:36
+ALLDONE 13:19:56

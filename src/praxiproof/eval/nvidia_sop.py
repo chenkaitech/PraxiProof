@@ -133,9 +133,16 @@ def evaluate(root: Path, videos: list[str], backend: VideoBackend, out: Path | N
     return report
 
 
-def build_references(root: Path, videos: list[str], out: Path, per_group: int = 3, position: float = 0.6) -> list[ReferenceExample]:
-    """Take example frames of each action from training recordings; never from the recordings used for testing."""
-    held_out = {p.name for p in (root / "test").iterdir() if p.is_dir()} if (root / "test").is_dir() else set()
+def build_references(
+    root: Path, videos: list[str], out: Path, per_group: int = 3, position: float = 0.6, held_out: set[str] | None = None
+) -> list[ReferenceExample]:
+    """Take example frames of each action from training recordings; never from the recordings used for testing.
+
+    `held_out` names the recordings being evaluated. It defaults to the dataset's own test split; cross-validation
+    passes each fold's held-out recordings instead, since a recording that is test data in one fold is training
+    data in another."""
+    if held_out is None:
+        held_out = {p.name for p in (root / "test").iterdir() if p.is_dir()} if (root / "test").is_dir() else set()
     if leaked := sorted(set(videos) & held_out):
         raise ValueError(f"reference images must not come from test recordings: {leaked}")
     chunks = {video: action_chunks(root, video) for video in videos}
