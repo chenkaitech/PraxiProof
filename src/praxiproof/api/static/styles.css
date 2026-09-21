@@ -280,3 +280,7 @@ label.radio { flex-direction: row; align-items: center; font-weight: 500; }
 .chip.ok { background: var(--green-soft); color: var(--green); }
 .chip.bad { background: var(--red-soft); color: var(--red); }
 .chip.warn { background: var(--amber-soft); color: var(--amber); }
+
+.bar.ci { position: relative; }
+.bar.ci i { position: absolute; top: 3px; height: 4px; background: rgba(15,23,42,.6); border-radius: 2px; }
+.cv-notes { margin: 10px 0; padding-left: 20px; }

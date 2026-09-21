@@ -59,6 +59,16 @@ manual (PDF/HTML)                 video (mp4)
 
 前端是 FastAPI 内置的静态双语(中/英)单页应用(`src/praxiproof/api/static/`),后端 `src/praxiproof/api/app.py` 暴露手册编译、视频上传、一键 pipeline、verdict 复核、Skill 下载、Compliance Agent 问答等 REST 接口。
 
+## 界面截图
+
+评测页(同一份数据的中文版见 `docs/screenshots/evaluation-zh.png`),以及 Agent 追问时展开的协作轨迹——Compliance Agent 委托 RCA Agent,后者用自己的原始数据工具得出结构化结论。截图由 `scripts/ui_smoke.py` 在真实浏览器里跑线上服务时生成,同一个脚本还会在页面出现控制台报错、接口失败或未翻译文本时直接失败。
+
+![评测页](docs/screenshots/evaluation.png)
+
+![Agent 协作轨迹](docs/screenshots/run-agent-trace.png)
+
+![每条规则的"为什么没通过"](docs/screenshots/run-why.png)
+
 ## 快速开始
 
 ```bash
@@ -107,7 +117,7 @@ export PRAXIPROOF_LLM_MODEL=step-3.5-flash   # 实测可用,见下
 
 **① DDM-Net 边界检测模型微调**:NVIDIA `pytorch:26.08` 容器里在 GB10 上训练,ResNet-50 骨干(`multiframes_resnet`),分辨率 224、每侧 5 帧,RandomResize/ColorJitter/GaussianBlur 数据增强,8 段训练 / 2 段验证。配置与脚本:`deploy/ddm/train/spark_clean.yaml`、`run_train_clean.sh`。
 
-**② 后端消融**(事件检测,时间 IoU ≥ 0.3;原始结果在 `docs/eval/*.json`):
+**② 后端消融**(事件检测,时间 IoU ≥ 0.3;原始结果在 `docs/eval/*.json`)。这张表是开发过程中在 `Install_12`/`Install_13` 两段上做的,选择方案时看的就是这两段,所以数字偏乐观,更可信的结果见后面的 ④:
 
 | 方案 | 精确率 | 召回率 | F1 | 序列相似度 | 秒/视频 |
 |---|---|---|---|---|---|
@@ -122,7 +132,21 @@ export PRAXIPROOF_LLM_MODEL=step-3.5-flash   # 实测可用,见下
 
 **③ VLM 选型**(18 个留出片段的单步分类准确率,`docs/eval/vlm_select*.json`):`gemma4:31b` 18/18(约 4.5 秒/片段);`qwen3.6:35b-a3b`(默认思考模式)17/18 但 29.7 秒/片段;`qwen3-vl:32b` 15/18;`qwen3.6` 关闭思考后掉到 5/18。所以视频侧用 gemma4,文本侧(手册编译、Agent)用 qwen3.6。
 
-**局限**:评测集只有 2 段录像、18 个标注事件,F1 0.971 的置信区间很宽,不能外推为通用准确率;两个 demo 场景的 `BENCHMARK.md` 评的是确定性验证引擎,与这里的视频侧指标是两回事。
+**④ 留出交叉验证(更可信的数字)**:② 的表只有 2 段录像、18 个事件,而提示词、投票、窗口合并这些选择是拿这两段比较出来的(② 和 ③ 的原始结果都只有这两段),所以 0.971 偏乐观。为此在全部 12 段录像上做了 4 折交叉验证(`deploy/ddm/cv/`):每段录像恰好留出一次;每折从其余 9 段里取 7 段训练、2 段验证,重新微调 DDM-Net,并且只从该折的训练录像取参考图(`build_references` 的防泄漏检查按折生效);每折的检查点按训练日志里的验证集 F1 选择。置信区间按整段录像做 bootstrap(10000 轮),因为独立的单位是录像而不是事件。
+
+| 方案 | 录像 | 事件 | 精确率 | 召回率 | F1 [95% 置信区间] |
+|---|---|---|---|---|---|
+| **完整流水线(每折单独微调)——全部录像** | 12 | 108 | 0.825 | 0.963 | **0.889** [0.846, 0.926] |
+| 同上——未参与调参的 10 段 | 10 | 90 | 0.804 | 0.956 | 0.873 [0.828, 0.908] |
+| 纯 VLM 滑窗——全部录像 | 12 | 108 | 0.691 | 0.435 | 0.534 [0.488, 0.580] |
+| 纯 VLM 滑窗——未参与调参的 10 段 | 10 | 90 | 0.667 | 0.422 | 0.517 [0.471, 0.566] |
+
+- **提升是稳的**:同样 12 段上 F1 比纯 VLM 高 0.355(配对 bootstrap 95% 置信区间 0.286 到 0.420),排除调过参的两段后是 0.356(0.276 到 0.430);12 段录像每一段都优于纯 VLM。四折各自的 F1 是 0.885 / 0.915 / 0.852 / 0.900,折间差异不大。代价是耗时:平均每段 514 秒对 201 秒,约 2.6 倍。
+- **真实水平是 0.87–0.89,不是 0.971**:0.971 是在调过参的两段上得到的。
+- **错误主要是重复标注,不是漏检**:召回 0.963,精确率 0.825。多出来的事件集中在电源上(预测 37 个,真实 24 个,多 13 个),机盖多 3 个、风扇多 2 个。据此推断,`MUST_HAVE`/`BEFORE`/`COUNT ≥ n` 这类规则不怕多出来的重复事件,而"恰好 n 次"或 `MUST_NOT` 类规则会受影响;这个推断没有在规则判定层面单独测量过。
+- 复现:`deploy/ddm/cv/make_folds.py` 划分并校验标注(能逐字复现原来的 `train_clean.json`),`run_cv.sh` 跑完整流程,`python -m praxiproof.eval.cv_summary` 汇总。结果在 `docs/eval/cv/`、`docs/eval/cv_summary.json`,评测页直接读取。
+
+**局限**:12 段录像来自同一套场景,所以这不能说明对其他环境的泛化;每折只用 7 段训练(线上模型用了 8 段),对线上模型是偏保守的估计;两个 demo 场景的 `BENCHMARK.md` 评的是确定性验证引擎,与这里的视频侧指标是两回事。
 
 ## 对照实验:直接问 VLM vs PraxiProof
 
@@ -176,6 +200,6 @@ export PRAXIPROOF_LLM_MODEL=step-3.5-flash   # 实测可用,见下
 ## 已知限制 / Roadmap
 
 - [ ] 把 Spark 上的线上服务切到 StepFun(需要在 systemd 里配置环境变量,目前线上仍用本地 Ollama),并评估 StepFun 的 VLM 能力用于视频理解。
-- [ ] 评测集目前只有 2 段留出录像(共 18 个标注事件),样本量小;补充更多留出录像后重跑 `praxiproof eval-sop`,并把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
+- [ ] 补拍其他环境的录像验证跨场景泛化(目前 12 段来自同一套场景);压缩电源等步骤的重复标注(精确率 0.825);把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
 - [ ] `BENCHMARK.md` 补上真实 Ollama 环境下的 Efficiency 与"带/不带 skill"对比。
 - [ ] 录制 Demo 演示视频、撰写黑客松十日谈征文、补团队合影。

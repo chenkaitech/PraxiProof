@@ -180,8 +180,19 @@ function findingCard(f, compact = false) {
   </div>`;
 }
 
+const STALE = Symbol("stale render");
+// A page renderer awaits several GETs; if the user has navigated on by the time one returns, drop the whole render
+// instead of letting it overwrite the newer page (Settings waits ~1s on /api/models and used to clobber the next view).
+function rapi(path) {
+  const token = state.renderToken;
+  return api(path).then((result) => {
+    if (token !== state.renderToken) throw STALE;
+    return result;
+  });
+}
+
 async function renderDashboard() {
-  const [d, skills] = await Promise.all([api("/api/dashboard"), api("/api/skills")]);
+  const [d, skills] = await Promise.all([rapi("/api/dashboard"), rapi("/api/skills")]);
   const m = d.latest_manual, v = d.latest_video, metrics = d.metrics;
   const now = new Date();
   const activeRun = d.recent_runs.find((r) => busy(r.status));
@@ -333,7 +344,7 @@ async function openPipelineDialog() {
 }
 
 async function renderPipeline(id) {
-  const p = await api(`/api/pipelines/${encodeURIComponent(id)}`);
+  const p = await rapi(`/api/pipelines/${encodeURIComponent(id)}`);
   const failed = p.status === "failed";
   const order = ["compiling", "verifying", "packaging"];
   const current = p.status === "done" ? 3 : order.indexOf(p.stage);
@@ -361,7 +372,7 @@ async function renderPipeline(id) {
 }
 
 async function renderRuns() {
-  const runs = await api("/api/runs");
+  const runs = await rapi("/api/runs");
   view.innerHTML = `<div class="page-head"><div><h1>${t("runs.title")}</h1><p>${t("runs.subtitle")}</p></div><div class="spacer"></div><button class="btn primary" id="start">${t("common.start")}</button></div>
     <section class="card">${runsTable(runs)}</section>`;
   $("#start").addEventListener("click", () => openRunDialog());
@@ -417,7 +428,7 @@ async function askWhy(runId, ruleId, slot, button) {
 }
 
 async function renderRun(id) {
-  const [run, skills] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api("/api/skills")]);
+  const [run, skills] = await Promise.all([rapi(`/api/runs/${encodeURIComponent(id)}`), rapi("/api/skills")]);
   const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} — ${esc(run.manual_name)}</p>${run.video_note ? `<p><span class="badge warn">${esc(t("video.note"))}</span> ${esc(run.video_note)}</p>` : ""}</div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>`;
   if (busy(run.status) || run.status === "failed") {
     view.innerHTML = `${head}<section class="card">${run.status === "failed" ? `<p class="error-text">${esc(t("run.failed", { error: run.error }))}</p>` : `<p>${ICON.spin} ${esc(t("run.working", { stage: stageLabel(run.stage) }))}</p>`}</section>`;
@@ -519,7 +530,7 @@ function signature(c) {
 }
 
 async function renderManuals() {
-  const manuals = (await api("/api/manuals")).filter(matches);
+  const manuals = (await rapi("/api/manuals")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("manuals.title")}</h1><p>${t("manuals.subtitle")}</p></div></div>
     <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card manual">${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
       <label class="procedure-input">${t("dash.procedure")} <input id="procedure" placeholder="${esc(t("manuals.procedure_ph"))}"></label></section></div>
@@ -532,7 +543,7 @@ async function renderManuals() {
 }
 
 async function renderManual(id) {
-  const m = await api(`/api/manuals/${encodeURIComponent(id)}`);
+  const m = await rapi(`/api/manuals/${encodeURIComponent(id)}`);
   const rs = m.requirement_set;
   view.innerHTML = `<div class="page-head"><div><h1>${esc(m.procedure || m.filename)}</h1><p>${esc(m.id)} · ${esc(m.filename)} · ${esc(m.extractor || "")}${m.page_count ? ` · ${esc(t("common.pages", { n: m.page_count }))}` : ""}</p></div><div class="spacer"></div>
       ${statusBadge(m.status)}<button class="btn ghost" id="recompile">${t("manual.recompile")}</button><a class="btn ghost" href="#manuals">${t("manual.back")}</a></div>
@@ -552,7 +563,7 @@ async function renderManual(id) {
 }
 
 async function renderVideos() {
-  const videos = (await api("/api/videos")).filter(matches);
+  const videos = (await rapi("/api/videos")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("videos.title")}</h1><p>${t("videos.subtitle")}</p></div></div>
     <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card video">${dropzone("video", "video/*", t("dash.video_drop"))}</section></div>
     <div class="grid-4">${videos.map((v) => `<section class="card"><img class="thumb" style="width:100%;height:150px" src="/api/videos/${esc(v.id)}/frame?t=${Math.min(2, v.meta.duration / 2).toFixed(1)}" alt="">
@@ -563,7 +574,7 @@ async function renderVideos() {
 }
 
 async function renderSkills() {
-  const skills = (await api("/api/skills")).filter(matches);
+  const skills = (await rapi("/api/skills")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("skills.title")}</h1><p>${t("skills.subtitle")}</p></div></div>
     <section class="card">${skills.length ? `<table><thead><tr><th>ID</th><th>${t("skills.col_skill")}</th><th>${t("skills.col_procedure")}</th><th>${t("skills.col_verified")}</th><th>${t("skills.col_results")}</th><th>${t("skills.col_review")}</th><th>${t("skills.col_created")}</th><th></th></tr></thead><tbody>
     ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${reviewBadge(s)}</td><td>${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
@@ -572,7 +583,7 @@ async function renderSkills() {
 }
 
 async function renderSkill(id) {
-  const [skills, md] = await Promise.all([api("/api/skills"), api(`/api/skills/${encodeURIComponent(id)}/skill.md`)]);
+  const [skills, md] = await Promise.all([rapi("/api/skills"), rapi(`/api/skills/${encodeURIComponent(id)}/skill.md`)]);
   const s = skills.find((x) => x.id === id);
   view.innerHTML = `<div class="page-head"><div><h1><code style="font-size:26px">${esc(s?.name)}</code></h1><p>${esc(s?.procedure)} · ${t("skill.verified_by")} <a href="#run/${esc(s?.run_id)}">${esc(s?.run_id)}</a> · ${s ? reviewBadge(s) : ""}</p></div><div class="spacer"></div>
     ${s && s.review_status !== "approved" ? `<button class="btn ghost" id="approve">${t("skill.approve")}</button>` : ""}
@@ -585,8 +596,8 @@ async function renderSkill(id) {
 }
 
 async function renderReports() {
-  const runs = (await api("/api/runs")).filter((r) => r.status === "done" && matches(r));
-  const details = await Promise.all(runs.slice(0, 20).map((r) => api(`/api/runs/${encodeURIComponent(r.id)}`)));
+  const runs = (await rapi("/api/runs")).filter((r) => r.status === "done" && matches(r));
+  const details = await Promise.all(runs.slice(0, 20).map((r) => rapi(`/api/runs/${encodeURIComponent(r.id)}`)));
   const pct = (m) => (m ? `${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span>` : "—");
   view.innerHTML = `<div class="page-head"><div><h1>${t("reports.title")}</h1><p>${t("reports.subtitle")}</p></div></div>
     <section class="card">${details.length ? `<table><thead><tr><th>${t("reports.col_run")}</th><th>${t("runs.col_video")}</th><th>${t("runs.col_result")}</th><th>${t("reports.col_trace")}</th><th>${t("reports.col_safety")}</th><th>${t("reports.col_steps")}</th><th>${t("reports.col_alignment")}</th><th>${t("reports.col_pass")}</th><th>${t("reports.col_violation")}</th><th>${t("reports.col_unverified")}</th><th>${t("reports.col_insufficient")}</th></tr></thead><tbody>
@@ -596,6 +607,7 @@ async function renderReports() {
   bindRowLinks(view);
 }
 
+const ciBar = (f1, ci, cls) => `<div class="bar ci"><span class="${cls}" style="width:${Math.max(2, f1 * 100)}%"></span><i style="left:${ci[0] * 100}%;width:${Math.max(1, (ci[1] - ci[0]) * 100)}%"></i></div>`;
 const bar = (value, max, cls = "") => `<div class="bar"><span class="${cls}" style="width:${Math.max(2, Math.round((value / max) * 100))}%"></span></div>`;
 const labelText = (s) => t(`eval.l.${String(s).toLowerCase().replace(/ /g, "_")}`);
 
@@ -604,8 +616,26 @@ function baselineChip(label, truth) {
   return `<span class="chip ${cls}">${esc(labelText(label))}</span>`;
 }
 
+function cvSection(cv) {
+  const d = cv.ddm_vlm_cv;
+  const row = (key, b, cls) => `<tr><td>${esc(t(key))}</td><td>${b.recordings}</td><td>${b.gold_events}</td><td>${b.precision.toFixed(3)}</td><td>${b.recall.toFixed(3)}</td>
+    <td><b>${b.f1.toFixed(3)}</b> <span class="muted small">[${b.f1_ci95[0].toFixed(2)}–${b.f1_ci95[1].toFixed(2)}]</span></td><td class="barcell">${ciBar(b.f1, b.f1_ci95, cls)}</td></tr>`;
+  const rows = [
+    d.all && row("eval.cv.row_ddm_all", d.all, "good"),
+    d.untouched && row("eval.cv.row_ddm_untouched", d.untouched, "good"),
+    cv.local_vlm?.all && row("eval.cv.row_vlm_all", cv.local_vlm.all, ""),
+    cv.local_vlm?.untouched && row("eval.cv.row_vlm_untouched", cv.local_vlm.untouched, ""),
+  ].filter(Boolean).join("");
+  const paired = (k, key) => cv.paired_f1_difference?.[k] ? `<li>${esc(t(key, { d: cv.paired_f1_difference[k].difference.toFixed(3), lo: cv.paired_f1_difference[k].ci95[0].toFixed(2), hi: cv.paired_f1_difference[k].ci95[1].toFixed(2), n: cv.paired_f1_difference[k].recordings }))}</li>` : "";
+  const folds = Object.entries(d.per_fold).map(([f, x]) => `<span class="chip ok">${esc(f.replace("fold", t("eval.cv.fold") + " "))}: F1 ${x.f1.toFixed(2)}</span>`).join("");
+  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.cv")}</h3><p>${t("eval.cv_sub", { n: cv.protocol.recordings })}</p></div>
+    <table class="eval-table"><thead><tr><th>${t("eval.cv.col_setup")}</th><th>${t("eval.cv.col_rec")}</th><th>${t("eval.cv.col_events")}</th><th>${t("eval.col_precision")}</th><th>${t("eval.col_recall")}</th><th>F1 [95% CI]</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <ul class="cv-notes">${paired("all", "eval.cv.paired_all")}${paired("untouched", "eval.cv.paired_untouched")}</ul>
+    <p class="chips">${folds}</p><p class="muted small">${esc(t("eval.cv_note"))}</p></section>`;
+}
+
 async function renderEvaluation() {
-  const d = await api("/api/evaluation");
+  const d = await rapi("/api/evaluation");
   const shipped = d.backends.find((b) => b.shipped);
   const first = d.backends[0];
   const agentCard = (a) => `<div class="agent-card ${a.id === "rca" ? "purple" : "blue"}"><span class="agent-chip ${a.id === "rca" ? "purple" : "blue"}">${esc(t(`trace.${a.id}`))}</span>
@@ -620,6 +650,7 @@ async function renderEvaluation() {
   view.innerHTML = `<div class="page-head"><div><h1>${t("eval.title")}</h1><p>${t("eval.subtitle")}</p></div></div>
     <section class="card"><div class="card-head"><h3>${t("eval.agents")}</h3><p>${t("eval.agents_sub")}</p></div>
       <div class="agent-flow">${agentCard(d.agents[0])}<div class="flow-arrow"><code>run_root_cause_analysis</code><span>→</span><small>${esc(t("eval.delegates"))}</small></div>${agentCard(d.agents[1])}</div></section>
+    ${d.cross_validation ? cvSection(d.cross_validation) : ""}
     <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.tuning")}</h3><p>${t("eval.tuning_sub")}</p></div>
       ${shipped && first ? `<p class="callout">${esc(t("eval.tuning_delta", { from: first.f1, to: shipped.f1 }))}</p>` : ""}
       <table class="eval-table"><thead><tr><th>${t("eval.col_backend")}</th><th>F1</th><th></th><th>${t("eval.col_precision")}</th><th>${t("eval.col_recall")}</th><th>${t("eval.col_seq")}</th><th>${t("eval.col_time")}</th></tr></thead><tbody>
@@ -638,11 +669,11 @@ async function renderEvaluation() {
 }
 
 async function renderSettings() {
-  const [s, h] = await Promise.all([api("/api/settings"), api("/health")]);
+  const [s, h] = await Promise.all([rapi("/api/settings"), rapi("/health")]);
   let models = [];
   let modelError = "";
   try {
-    models = await api("/api/models");
+    models = await rapi("/api/models");
   } catch (err) {
     modelError = err.message;
   }
@@ -755,6 +786,7 @@ async function render(keepScroll = false) {
   try {
     await (routes[route] || renderDashboard)();
   } catch (err) {
+    if (err === STALE) return;
     if (token === state.renderToken) view.innerHTML = `<section class="card"><p class="error-text">${esc(err.message)}</p></section>`;
   }
   if (keepScroll) window.scrollTo(0, scroll);
