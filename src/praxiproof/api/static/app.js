@@ -634,6 +634,20 @@ function cvSection(cv) {
     <p class="chips">${folds}</p><p class="muted small">${esc(t("eval.cv_note"))}</p></section>`;
 }
 
+function secondLookSection(sl) {
+  const a = sl.cross_validation_recordings, e = sl.edited_recordings;
+  const violating = e.rows.filter((r) => r.truth !== "Compliant").length;
+  const compliant = e.rows.length - violating;
+  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.sl")}</h3><p>${t("eval.sl_sub", { n: a.weak_events })}</p></div>
+    <div class="tiles">
+      <div class="tile"><b>${esc(a.true_events_confirmed)}</b><span>${esc(t("eval.sl.true"))}</span></div>
+      <div class="tile weak"><b>${esc(a.false_events_confirmed)}</b><span>${esc(t("eval.sl.false"))}</span></div>
+      <div class="tile"><b>${a.recordings_cleared_before} → ${a.recordings_cleared_after}<small> / ${a.recordings}</small></b><span>${esc(t("eval.sl.cleared"))}</span></div>
+      <div class="tile"><b>${e.violating_recordings_wrongly_cleared_after}/${violating}</b><span>${esc(t("eval.sl.unsafe"))}</span></div>
+      <div class="tile"><b>${e.compliant_cleared_before} → ${e.compliant_cleared_after}<small> / ${compliant}</small></b><span>${esc(t("eval.sl.compliant"))}</span></div>
+    </div><p class="muted small">${esc(t("eval.sl_note"))}</p></section>`;
+}
+
 async function renderEvaluation() {
   const d = await rapi("/api/evaluation");
   const shipped = d.backends.find((b) => b.shipped);
@@ -662,6 +676,7 @@ async function renderEvaluation() {
       <table class="eval-table"><thead><tr><th>${t("eval.col_video")}</th><th>${t("eval.col_truth")}</th><th>${t("eval.col_vlm")}</th><th>PraxiProof</th></tr></thead><tbody>
       ${b.videos.map((v) => `<tr><td>${esc(v.id)}</td><td>${esc(labelText(v.truth))}</td><td class="chips">${v.baseline.map((l) => baselineChip(l, v.truth)).join("")}</td><td>${v.praxiproof === v.truth ? `<span class="chip ok">${esc(labelText(v.praxiproof))}</span>` : `<span class="chip warn">${esc(labelText(v.praxiproof))}</span>`}</td></tr>`).join("")}
       </tbody></table><p class="muted small">${esc(t("eval.baseline_note"))}</p></section>` : ""}
+    ${d.second_look ? secondLookSection(d.second_look) : ""}
     ${d.stepfun ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
       <table class="eval-table"><thead><tr><th>${t("eval.col_model")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_rules")}</th></tr></thead><tbody>
       ${d.stepfun.runs.map((r) => `<tr><td>${esc(r.model)}</td><td>${r.seconds}s</td><td>${r.error ? `<span class="chip bad">${esc(r.error)}</span>` : `${r.rules}${r.rejected ? ` <span class="muted small">(${esc(t("eval.rejected", { n: r.rejected }))})</span>` : ""}`}</td></tr>`).join("")}
@@ -700,6 +715,7 @@ async function renderSettings() {
       <label>${t("settings.ddm_checkpoint")}<input type="text" name="ddm_checkpoint" value="${esc(s.ddm_checkpoint || "")}" placeholder="/home/…/ddm_server_fan.ckpt"><small>${t("settings.ddm_hint")}</small></label>
       <label>${t("settings.reference_dir")}<input type="text" name="reference_dir" value="${esc(s.reference_dir || "")}" placeholder="/home/…/references/server_fan"><small>${t("settings.reference_hint")}</small></label>
       <label>${t("settings.bp_url")}<input type="text" name="sop_bp_url" value="${esc(s.sop_bp_url || "")}" placeholder="http://127.0.0.1:8000/..."></label>
+      <label class="check"><span><input type="checkbox" name="second_look" ${s.second_look ? "checked" : ""}> ${t("settings.second_look")}</span><small>${t("settings.second_look_hint")}</small></label>
       <label>${t("settings.confidence")}<input type="number" name="min_confidence" min="0" max="1" step="0.05" value="${esc(s.min_confidence)}"><small>${t("settings.confidence_hint")}</small></label>
       <p class="form-error" id="settings-error"></p>
       <div><button class="btn primary" type="submit">${t("settings.save")}</button></div>
@@ -729,6 +745,7 @@ async function renderSettings() {
       ddm_checkpoint: form.ddm_checkpoint.value.trim() || null,
       reference_dir: form.reference_dir.value.trim() || null,
       min_confidence: Number(form.min_confidence.value),
+      second_look: form.second_look.checked,
     };
     try {
       await api("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

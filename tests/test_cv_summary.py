@@ -48,3 +48,21 @@ def test_evaluation_api_exposes_the_cv_summary_when_present(tmp_path):
     assert load_evaluation(tmp_path)["cross_validation"] is None
     (tmp_path / "cv_summary.json").write_text(json.dumps({"protocol": {"recordings": 12}}))
     assert load_evaluation(tmp_path)["cross_validation"]["protocol"]["recordings"] == 12
+
+
+def test_a_recording_the_pipeline_clears_counts_as_cleared(tmp_path):
+    from praxiproof.evaluation import load_evaluation
+
+    def entry(truth, result):
+        return {"truth": truth, "baseline": [{"label": "Compliant"}] * 3, "praxiproof": {"result": result}}
+
+    (tmp_path / "baseline_vs_praxiproof.json").write_text(json.dumps({"videos": {"a": entry("Compliant", "PASS"), "b": entry("Compliant", "Needs Evidence")}}))
+    assert load_evaluation(tmp_path)["baseline"]["compliant"]["praxiproof_cleared"] == 1
+
+
+def test_evaluation_api_exposes_the_second_look_results(tmp_path):
+    from praxiproof.evaluation import load_evaluation
+
+    (tmp_path / "second_look.json").write_text(json.dumps({"cross_validation_recordings": {"weak_events": 9}}))
+    assert load_evaluation(tmp_path)["second_look"]["cross_validation_recordings"]["weak_events"] == 9
+    assert load_evaluation(tmp_path / "missing")["second_look"] is None

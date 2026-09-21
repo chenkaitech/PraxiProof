@@ -81,7 +81,8 @@ def _baseline(eval_dir: Path) -> dict[str, Any] | None:
     videos, violating, cleared = [], {"n": 0, "praxiproof_correct": 0, "samples": 0, "baseline_correct": 0, "baseline_false_compliant": 0}, {"n": 0, "praxiproof_cleared": 0, "baseline_correct": 0, "samples": 0}
     for name, v in data["videos"].items():
         labels = [b["label"] for b in v["baseline"]]
-        praxi = v["praxiproof"]["result"]
+        # the pipeline reports a cleared recording as "PASS"; the truth column calls the same thing "Compliant"
+        praxi = {"PASS": "Compliant"}.get(v["praxiproof"]["result"], v["praxiproof"]["result"])
         videos.append({"id": name, "truth": v["truth"], "baseline": labels, "praxiproof": praxi})
         if v["truth"] == "Compliant":
             cleared["n"] += 1
@@ -116,6 +117,7 @@ def load_evaluation(eval_dir: Path | None = None) -> dict[str, Any]:
         "vlm_selection": _vlm_selection(eval_dir),
         "baseline": _baseline(eval_dir),
         "cross_validation": _load(eval_dir, "cv_summary"),
+        "second_look": _load(eval_dir, "second_look"),
         "stepfun": _load(eval_dir, "stepfun_compile_benchmark"),
         "agents": _agents(),
     }

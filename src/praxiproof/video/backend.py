@@ -41,6 +41,7 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
             disagreement_confidence=settings.min_confidence / 2,
             references=references,
             matcher=llm_matcher(llm, settings.llm_model),
+            second_look_below=settings.min_confidence if settings.second_look else None,
         )
     if settings.video_backend == "local_vlm":
         from praxiproof.video.local_vlm_adapter import LocalVLMBackend

@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "reference_dir", "min_confidence")
+EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "reference_dir", "min_confidence", "second_look")
 VIDEO_BACKENDS = ("local_vlm", "ddm_vlm", "nvidia_sop")
 LLM_PROVIDERS = ("ollama", "openai")
 
@@ -27,6 +27,7 @@ class Settings:
     data_dir: Path
     keep_alive: str
     min_confidence: float
+    second_look: bool
 
 
 def get_settings() -> Settings:
@@ -50,6 +51,7 @@ def get_settings() -> Settings:
         data_dir=Path(os.environ.get("PRAXIPROOF_DATA_DIR", "data")).resolve(),
         keep_alive=os.environ.get("PRAXIPROOF_KEEP_ALIVE", "5m"),
         min_confidence=float(os.environ.get("PRAXIPROOF_MIN_CONFIDENCE", "0.5")),
+        second_look=os.environ.get("PRAXIPROOF_SECOND_LOOK", "false").lower() in ("1", "true", "yes"),
     )
 
 
@@ -78,9 +80,9 @@ def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | Non
     clean = dict(changes)
     if "video_backend" in clean and clean["video_backend"] not in VIDEO_BACKENDS:
         raise ValueError(f"video_backend must be one of {VIDEO_BACKENDS}")
-    if "vlm_thinking" in clean:
-        if not isinstance(clean["vlm_thinking"], bool):
-            raise ValueError("vlm_thinking must be true or false")
+    for flag in ("vlm_thinking", "second_look"):
+        if flag in clean and not isinstance(clean[flag], bool):
+            raise ValueError(f"{flag} must be true or false")
     if "min_confidence" in clean:
         value = float(clean["min_confidence"])
         if not 0.0 <= value <= 1.0:

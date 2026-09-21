@@ -120,3 +120,47 @@ def test_a_step_without_working_hands_is_none(make_video):
     observation, _ = DDMVLMBackend(fake, "vlm", FakeRunner([])).observe(video, "VID-6", VOCAB, "servers")
     assert observation.events == []
     assert list(fake.json_calls[0]["schema"]["properties"])[:3] == ["hands_working", "part_handled", "label"]
+
+
+def _two_segment_backend(fake, **kwargs):
+    return DDMVLMBackend(fake, "vlm", FakeRunner([10.0]), disagreement_confidence=0.25, **kwargs)
+
+
+def _first_pass_then(second_look):
+    """First-pass answers: a confident fan segment and a segment the votes disagree on (-> weak). Then the second look."""
+    first = iter(["fan_installed", "fan_installed", "psu_installed", "none", "psu_installed"])  # 2 agree | 3 disagree
+
+    def handler(model, messages, schema, images):
+        if "step_performed" in schema["properties"]:
+            return second_look(images)
+        label = next(first)
+        return {"hands_working": label != "none", "part_handled": label, "label": label, "confidence": 0.9, "description": label}
+
+    return FakeLLM(json_handler=handler)
+
+
+def test_second_look_promotes_a_weak_event_the_majority_confirms(make_video):
+    fake = _first_pass_then(lambda images: {"hands_working": True, "step_performed": True, "confidence": 0.95})
+    observation, evidence = _two_segment_backend(fake, second_look_below=0.5).observe(make_video(20), "VID-4", VOCAB, "servers")
+
+    by_label = {e.label: e for e in observation.events}
+    assert by_label["fan_installed"].confidence == 0.9  # confident, never re-examined
+    assert by_label["psu_installed"].confidence == 0.8  # promoted, capped below a first-pass agreement
+    assert "second look: 2/2 votes confirm" in by_label["psu_installed"].description
+    assert "second look" in next(e for e in evidence if e.text and "second look" in e.text).text
+    looks = [c for c in fake.json_calls if "step_performed" in c["schema"]["properties"]]
+    assert len(looks) == 2 and all(len(c["images"]) == 12 for c in looks)  # early stop once two votes agree
+
+
+def test_second_look_that_is_not_confirmed_leaves_the_event_weak(make_video):
+    fake = _first_pass_then(lambda images: {"hands_working": True, "step_performed": False, "confidence": 0.9})
+    observation, _ = _two_segment_backend(fake, second_look_below=0.5).observe(make_video(20), "VID-5", VOCAB, "servers")
+    weak = next(e for e in observation.events if e.label == "psu_installed")
+    assert weak.confidence == 0.25 and "second look: 0/2 votes confirm" in weak.description
+
+
+def test_second_look_is_off_by_default(make_video):
+    fake = _first_pass_then(lambda images: {"hands_working": True, "step_performed": True, "confidence": 0.95})
+    observation, _ = _two_segment_backend(fake).observe(make_video(20), "VID-6", VOCAB, "servers")
+    assert next(e for e in observation.events if e.label == "psu_installed").confidence == 0.25
+    assert not [c for c in fake.json_calls if "step_performed" in c["schema"]["properties"]]

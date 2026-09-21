@@ -58,6 +58,7 @@ class SettingsUpdate(BaseModel):
     ddm_checkpoint: str | None = None
     reference_dir: str | None = None
     min_confidence: float | None = None
+    second_look: bool | None = None
 
 
 class AskRequest(BaseModel):
@@ -138,6 +139,7 @@ def create_app(
             "ddm_checkpoint": s.ddm_checkpoint,
             "reference_dir": s.reference_dir,
             "min_confidence": s.min_confidence,
+            "second_look": s.second_look,
             "ollama_url": s.ollama_url,
             "llm_provider": s.llm_provider,
             "openai_base_url": s.openai_base_url,

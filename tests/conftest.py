@@ -70,6 +70,7 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path / "data",
         keep_alive="1m",
         min_confidence=0.5,
+        second_look=False,
     )
 
 

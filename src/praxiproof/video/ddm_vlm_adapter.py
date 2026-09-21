@@ -81,6 +81,9 @@ class DDMVLMBackend:
         disagreement_confidence: float = 0.25,
         references: list[ReferenceExample] | None = None,
         matcher: Matcher | None = None,
+        second_look_below: float | None = None,
+        second_look_frames: int = 12,
+        second_look_width: int = 896,
     ):
         self.llm = llm
         self.model = model
@@ -94,6 +97,9 @@ class DDMVLMBackend:
         self.disagreement_confidence = disagreement_confidence
         self.references = references or []
         self.matcher = matcher
+        self.second_look_below = second_look_below
+        self.second_look_frames = second_look_frames
+        self.second_look_width = second_look_width
 
     def observe(
         self, path: Path, source_id: str, vocabulary: list[EventDef], procedure: str
@@ -110,8 +116,78 @@ class DDMVLMBackend:
                 segments.append(
                     RawSegment(label=label, description=description, start=start, end=end, confidence=confidence, uncertainty=self.boundary_uncertainty)
                 )
+        if self.second_look_below is not None:
+            segments = [self._second_look(path, s, vocabulary, procedure, references) if s.confidence < self.second_look_below else s for s in segments]
         model = f"ddm-net + {self.model}" + (f" + {sum(len(r.images) for _, r in references)} reference images" if references else "")
         return normalize(segments, source_id, sha256_file(path), meta, self.name, model, approximate=True)
+
+    def _second_look(
+        self, path: Path, segment: RawSegment, vocabulary: list[EventDef], procedure: str, references: list[tuple[str | None, ReferenceExample]]
+    ) -> RawSegment:
+        """Re-examine one low-confidence segment with a denser, higher-resolution view and a yes/no question.
+
+        Only a majority of confirmations raises the confidence; otherwise the segment is returned as it was, so this
+        can turn "unverified" into "verified" but never invents a violation, and the rules themselves are untouched.
+        """
+        event = next((e for e in vocabulary if e.label == segment.label), None)
+        if event is None:
+            return segment
+        examples = [example for target, example in references if target == segment.label]
+        answers: list[tuple[bool, float]] = []
+        for phase in (0.5, 0.25, 0.75):
+            answers.append(self._verify(path, segment, event, examples, procedure, phase))
+            if len(answers) == 2 and answers[0][0] == answers[1][0]:
+                break
+        confirmed = [confidence for ok, confidence in answers if ok]
+        note = f"[second look: {len(confirmed)}/{len(answers)} votes confirm]"
+        description = f"{segment.description} {note}".strip()
+        if len(confirmed) * 2 > len(answers):
+            promoted = max(self.second_look_below or 0.0, min(0.8, sum(confirmed) / len(confirmed)))
+            return segment.model_copy(update={"confidence": round(promoted, 3), "description": description})
+        return segment.model_copy(update={"description": description})
+
+    def _verify(
+        self, path: Path, segment: RawSegment, event: EventDef, examples: list[ReferenceExample], procedure: str, phase: float
+    ) -> tuple[bool, float]:
+        count = self.second_look_frames
+        step = (segment.end - segment.start) / count
+        frames = [frame_at(path, round(segment.start + step * (i + phase), 3), self.second_look_width) for i in range(count)]
+        reference_images = [image for example in examples for image in example.images]
+        if reference_images:
+            intro = (
+                f"The first {len(reference_images)} images are reference examples of this step from other recordings. "
+                f"The last {len(frames)} images are frames, in time order, from one segment of a procedure video.\n"
+            )
+        else:
+            intro = f"The {len(frames)} images are frames in time order from one segment of a procedure video.\n"
+        schema = {
+            "type": "object",
+            "properties": {"hands_working": {"type": "boolean"}, "step_performed": {"type": "boolean"}, "confidence": {"type": "number"}},
+            "required": ["hands_working", "step_performed", "confidence"],
+        }
+        result = self.llm.chat_json(
+            self.model,
+            [
+                {
+                    "role": "user",
+                    "content": (
+                        f"{intro}Step to check: {event.label} — {event.description}.\n"
+                        "First say whether the technician's hands are visibly working on the equipment in the segment (hands_working). "
+                        "Then say whether this step is fully carried out within the segment (step_performed). Answer false if it has "
+                        "not started, is only being prepared, or was already finished before the segment begins. Add a confidence "
+                        "between 0 and 1."
+                    ),
+                }
+            ],
+            schema,
+            images=reference_images + frames,
+            think=None if self.thinking else False,
+        )
+        try:
+            confidence = min(max(float(result.get("confidence", 0.0)), 0.0), 1.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        return bool(result.get("hands_working")) and bool(result.get("step_performed")), confidence
 
     def _vote(
         self, path: Path, start: float, end: float, vocabulary: list[EventDef], procedure: str, references: list[tuple[str | None, ReferenceExample]]

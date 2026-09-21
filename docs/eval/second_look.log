@@ -1,0 +1,33 @@
+Install_1 psu_installed false -> 0.25
+Install_1 psu_installed false -> 0.25
+Install_6 cover_installed true -> 0.8
+Install_7 psu_installed false -> 0.8
+Install_4 cover_installed false -> 0.25
+Install_8 cover_installed true -> 0.8
+Install_5 fan_installed true -> 0.8
+Install_5 psu_installed true -> 0.8
+Install_9 psu_installed false -> 0.25
+Install_12_compliant Compliant | Needs Evidence -> PASS
+Install_12_missing_cover Missing Step | Missing Step -> Missing Step
+Install_12_psu_before_fans Order Violation | Order Violation -> Order Violation
+Install_13_compliant Compliant | Needs Evidence -> Needs Evidence
+Install_13_missing_cover Missing Step | Missing Step -> Missing Step
+Install_13_psu_before_fans Order Violation | Order Violation -> Order Violation
+{
+  "cross_validation_recordings": {
+    "recordings": 12,
+    "weak_events": 9,
+    "true_events_confirmed": "4/4",
+    "false_events_confirmed": "1/5",
+    "recordings_cleared_before": 8,
+    "recordings_cleared_after": 11
+  },
+  "edited_recordings": {
+    "violating_recordings_wrongly_cleared_before": 0,
+    "violating_recordings_wrongly_cleared_after": 0,
+    "compliant_cleared_before": 0,
+    "compliant_cleared_after": 1,
+    "verdict_category_matches_truth_before": 4,
+    "verdict_category_matches_truth_after": 5
+  }
+}

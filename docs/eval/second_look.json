@@ -1,0 +1,144 @@
+{
+  "threshold": 0.5,
+  "vlm": "gemma4:31b",
+  "cross_validation_recordings": {
+    "recordings": 12,
+    "weak_events": 9,
+    "true_events_confirmed": "4/4",
+    "false_events_confirmed": "1/5",
+    "recordings_cleared_before": 8,
+    "recordings_cleared_after": 11,
+    "events": [
+      {
+        "video": "Install_1",
+        "label": "psu_installed",
+        "is_true_event": false,
+        "votes": "second look: 0/2 votes confirm",
+        "confidence_after": 0.25,
+        "confirmed": false
+      },
+      {
+        "video": "Install_1",
+        "label": "psu_installed",
+        "is_true_event": false,
+        "votes": "second look: 0/2 votes confirm",
+        "confidence_after": 0.25,
+        "confirmed": false
+      },
+      {
+        "video": "Install_6",
+        "label": "cover_installed",
+        "is_true_event": true,
+        "votes": "second look: 2/2 votes confirm",
+        "confidence_after": 0.8,
+        "confirmed": true
+      },
+      {
+        "video": "Install_7",
+        "label": "psu_installed",
+        "is_true_event": false,
+        "votes": "second look: 2/2 votes confirm",
+        "confidence_after": 0.8,
+        "confirmed": true
+      },
+      {
+        "video": "Install_4",
+        "label": "cover_installed",
+        "is_true_event": false,
+        "votes": "second look: 0/2 votes confirm",
+        "confidence_after": 0.25,
+        "confirmed": false
+      },
+      {
+        "video": "Install_8",
+        "label": "cover_installed",
+        "is_true_event": true,
+        "votes": "second look: 2/2 votes confirm",
+        "confidence_after": 0.8,
+        "confirmed": true
+      },
+      {
+        "video": "Install_5",
+        "label": "fan_installed",
+        "is_true_event": true,
+        "votes": "second look: 2/2 votes confirm",
+        "confidence_after": 0.8,
+        "confirmed": true
+      },
+      {
+        "video": "Install_5",
+        "label": "psu_installed",
+        "is_true_event": true,
+        "votes": "second look: 2/2 votes confirm",
+        "confidence_after": 0.8,
+        "confirmed": true
+      },
+      {
+        "video": "Install_9",
+        "label": "psu_installed",
+        "is_true_event": false,
+        "votes": "second look: 0/2 votes confirm",
+        "confidence_after": 0.25,
+        "confirmed": false
+      }
+    ]
+  },
+  "edited_recordings": {
+    "rows": [
+      {
+        "video": "Install_12_compliant",
+        "truth": "Compliant",
+        "before": "Needs Evidence",
+        "after": "PASS",
+        "weak_events": 1,
+        "promoted": 1
+      },
+      {
+        "video": "Install_12_missing_cover",
+        "truth": "Missing Step",
+        "before": "Missing Step",
+        "after": "Missing Step",
+        "weak_events": 1,
+        "promoted": 1
+      },
+      {
+        "video": "Install_12_psu_before_fans",
+        "truth": "Order Violation",
+        "before": "Order Violation",
+        "after": "Order Violation",
+        "weak_events": 0,
+        "promoted": 0
+      },
+      {
+        "video": "Install_13_compliant",
+        "truth": "Compliant",
+        "before": "Needs Evidence",
+        "after": "Needs Evidence",
+        "weak_events": 2,
+        "promoted": 2
+      },
+      {
+        "video": "Install_13_missing_cover",
+        "truth": "Missing Step",
+        "before": "Missing Step",
+        "after": "Missing Step",
+        "weak_events": 1,
+        "promoted": 1
+      },
+      {
+        "video": "Install_13_psu_before_fans",
+        "truth": "Order Violation",
+        "before": "Order Violation",
+        "after": "Order Violation",
+        "weak_events": 2,
+        "promoted": 1
+      }
+    ],
+    "violating_recordings_wrongly_cleared_before": 0,
+    "violating_recordings_wrongly_cleared_after": 0,
+    "compliant_cleared_before": 0,
+    "compliant_cleared_after": 1,
+    "verdict_category_matches_truth_before": 4,
+    "verdict_category_matches_truth_after": 5
+  }
+}
