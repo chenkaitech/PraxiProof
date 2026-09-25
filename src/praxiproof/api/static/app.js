@@ -6,16 +6,16 @@ const esc = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 const ICON = {
-  pdf: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:#94a3b8"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><rect x="3" y="12" width="12" height="7" rx="1.5" fill="#e5484d" stroke="#e5484d"/><text x="4.4" y="17.6" font-size="5" fill="#fff" stroke="none" font-family="Arial" font-weight="700">PDF</text></svg>',
-  play: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:#475569"><rect x="2" y="4" width="20" height="16" rx="3" fill="#64748b" stroke="#64748b"/><path d="M10 9l5 3-5 3z" fill="#fff" stroke="#fff"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:var(--muted)"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><rect x="3" y="12" width="12" height="7" rx="1.5" fill="var(--viol-solid)" stroke="var(--viol-solid)"/><text x="4.4" y="17.6" font-size="5" fill="#fff" stroke="none" font-family="Arial" font-weight="700">PDF</text></svg>',
+  play: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:var(--muted)"><rect x="2" y="4" width="20" height="16" rx="3" fill="var(--muted)" stroke="var(--muted)"/><path d="M10 9l5 3-5 3z" fill="#fff" stroke="#fff"/></svg>',
   doc: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>',
   list: '<svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   cam: '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>',
   screen: '<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
-  check: '<svg viewBox="0 0 24 24" style="color:#12a150;width:26px;height:26px"><circle cx="12" cy="12" r="10" fill="#12a150" stroke="#12a150"/><path d="m7.5 12.5 3 3 6-6" stroke="#fff"/></svg>',
-  spin: '<svg viewBox="0 0 24 24" style="width:24px;height:24px;color:#1a6cf0"><path d="M12 3a9 9 0 1 0 9 9"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>',
-  fail: '<svg viewBox="0 0 24 24" style="color:#e5484d;width:26px;height:26px"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg>',
+  check: '<svg viewBox="0 0 24 24" style="color:var(--pass-solid);width:26px;height:26px"><circle cx="12" cy="12" r="10" fill="var(--pass-solid)" stroke="var(--pass-solid)"/><path d="m7.5 12.5 3 3 6-6" stroke="#fff"/></svg>',
+  spin: '<svg viewBox="0 0 24 24" style="width:24px;height:24px;color:var(--accent)"><path d="M12 3a9 9 0 1 0 9 9"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>',
+  fail: '<svg viewBox="0 0 24 24" style="color:var(--viol-solid);width:26px;height:26px"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg>',
   alert: '<svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>',
   arrow: '<svg viewBox="0 0 24 24" class="arrow"><path d="M4 12h15M13 6l6 6-6 6"/></svg>',
   cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
@@ -61,14 +61,14 @@ function toast(message) {
 }
 
 const fmtTime = (s) => {
-  if (s == null) return "—";
+  if (s == null) return "-";
   const m = Math.floor(s / 60);
   return `${String(m).padStart(2, "0")}:${(s - m * 60).toFixed(1).padStart(4, "0")}`;
 };
 const fmtDuration = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 const locale = () => (LANG === "zh" ? "zh-CN" : "en-US");
 const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleString(locale(), { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+  iso ? new Date(iso).toLocaleString(locale(), { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "-";
 const fmtBytes = (n) => (n == null ? "" : n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} KB`);
 const busy = (status) => status === "queued" || status === "processing";
 const matches = (row) => !state.query || JSON.stringify(row).toLowerCase().includes(state.query);
@@ -88,16 +88,16 @@ function resultBadge(run) {
   if (busy(run.status)) return `<span class="badge info">${esc(run.stage ? stageLabel(run.stage) : t(`status.${run.status}`))}…</span>`;
   if (run.status === "failed") return `<span class="badge violation">${esc(t("result.failed"))}</span>`;
   const r = run.result;
-  if (!r) return "—";
+  if (!r) return "-";
   if (r === "PASS") return `<span class="badge pass">✓ ${esc(t("result.PASS"))}</span>`;
   if (r === "Needs Evidence") return `<span class="badge warn">? ${esc(t("result.Needs Evidence"))}</span>`;
   const cls = r === "Missing Step" ? "warn" : "violation";
   return `<span class="badge ${cls}">⚠ ${esc(t(`result.${r}`))}</span>`;
 }
 
-function ring(value, color) {
+function ring(value, tone) {
   const r = 32, c = 2 * Math.PI * r, pct = Math.max(0, Math.min(1, value ?? 0));
-  return `<div class="ring ring-wrap"><svg viewBox="0 0 76 76"><circle class="track" cx="38" cy="38" r="${r}"/><circle cx="38" cy="38" r="${r}" stroke="${color}" stroke-dasharray="${c * pct} ${c}" stroke-linecap="round"/></svg>`;
+  return `<div class="ring ring-wrap"><svg viewBox="0 0 76 76"><circle class="track" cx="38" cy="38" r="${r}"/><circle class="arc ${tone}" cx="38" cy="38" r="${r}" stroke-dasharray="${c * pct} ${c}" stroke-linecap="round"/></svg>`;
 }
 
 function schedulePoll(needed) {
@@ -167,12 +167,23 @@ function runsTable(runs, compact = false) {
   const rows = runs.filter(matches);
   if (!rows.length) return `<p class="empty">${esc(t("runs.none"))}</p>`;
   return `<table><thead><tr><th>#</th><th>${t("runs.col_video")}</th>${compact ? "" : `<th>${t("runs.col_procedure")}</th>`}<th>${t("runs.col_manual")}</th><th>${t("runs.col_date")}</th><th>${t("runs.col_result")}</th><th>${t("runs.col_violations")}</th></tr></thead><tbody>
-    ${rows.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td>${esc(r.id)}</td><td>${esc(r.video_name)}</td>${compact ? "" : `<td>${esc(r.procedure)}</td>`}<td>${esc(r.manual_name)}</td><td>${fmtDate(r.created_at)}</td><td>${resultBadge(r)}</td><td>${r.violations ?? "—"}</td></tr>`).join("")}
+    ${rows.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td class="id">${esc(r.id)}</td><td>${esc(r.video_name)}</td>${compact ? "" : `<td>${esc(r.procedure)}</td>`}<td>${esc(r.manual_name)}</td><td class="nowrap">${fmtDate(r.created_at)}</td><td>${resultBadge(r)}</td><td>${r.violations ?? "-"}</td></tr>`).join("")}
   </tbody></table>`;
 }
 
 function bindRowLinks(root) {
-  root.querySelectorAll("tr[data-href]").forEach((tr) => tr.addEventListener("click", () => (location.hash = tr.dataset.href)));
+  root.querySelectorAll("tr[data-href]").forEach((tr) => {
+    const open = () => (location.hash = tr.dataset.href);
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "link");
+    tr.addEventListener("click", open);
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || (e.key === " " && e.target === tr)) {
+        e.preventDefault();
+        open();
+      }
+    });
+  });
 }
 
 function findingCard(f, compact = false) {
@@ -187,8 +198,8 @@ function findingCard(f, compact = false) {
       ${severityBadge(f.severity)}
     </div>
     <div class="evidence-pair">
-      <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "—" }))}</b>${manual ? `<q>${esc(manual.text.slice(0, compact ? 110 : 400))}</q>` : ""}</div>
-      <div class="evidence-box"><div class="label">${esc(t("finding.video"))}</div><b>${video ? `${fmtTime(video.start)} – ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "-" }))}</b>${manual ? `<q>${esc(manual.text.slice(0, compact ? 110 : 400))}</q>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t("finding.video"))}</div><b>${video ? `${fmtTime(video.start)} to ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
     </div>
   </div>`;
 }
@@ -207,7 +218,6 @@ function rapi(path) {
 async function renderDashboard() {
   const [d, skills] = await Promise.all([rapi("/api/dashboard"), rapi("/api/skills")]);
   const m = d.latest_manual, v = d.latest_video, metrics = d.metrics;
-  const now = new Date();
   const activeRun = d.recent_runs.find((r) => busy(r.status));
   const doneRun = d.latest_run;
   const stageState = (i) => {
@@ -217,7 +227,7 @@ async function renderDashboard() {
     return m?.status === "ready" && i < 2 ? "done" : "";
   };
   const stageIcons = [ICON.stageManual, ICON.stageIR, ICON.stageAlign, ICON.stageVerify, ICON.stageSkill];
-  const metricCard = (title, metric, color, subtitle) => `<div class="card metric">${ring(metric?.value, color)}<div class="ring-label">${metric ? Math.round(metric.value * 100) + "%" : "—"}</div></div>
+  const metricCard = (title, metric, tone, subtitle) => `<div class="card metric">${ring(metric?.value, tone)}<div class="ring-label">${metric ? Math.round(metric.value * 100) + "%" : "-"}</div></div>
     <div><h4>${esc(title)}</h4><p>${esc(subtitle)}</p></div></div>`;
   const violations = metrics?.violations ?? 0;
 
@@ -225,7 +235,6 @@ async function renderDashboard() {
     <div class="page-head">
       <div><h1>${t("dash.title")}</h1><p>${t("dash.subtitle")}</p></div>
       <div class="spacer"></div>
-      <div class="date">${ICON.cal}<div>${now.toLocaleDateString(locale(), { month: "long", day: "numeric", year: "numeric" })}<small>${now.toLocaleDateString(locale(), { weekday: "long" })}, ${now.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })}</small></div></div>
       <button class="btn ghost big" id="pipeline">${t("pipe.button")}</button>
       <button class="btn primary big" id="start">${t("common.start")}</button>
     </div>
@@ -236,13 +245,13 @@ async function renderDashboard() {
         ${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
         <label class="procedure-input">${t("dash.procedure")} <input id="procedure" placeholder="${esc(t("dash.procedure_ph"))}"></label>
         ${manualRow(m)}
-        <div class="stats"><div>${ICON.list}<div><b>${m?.counts?.safety_rules ?? "—"}</b><small>${t("dash.safety_rules")}</small></div></div><div>${ICON.doc}<div><b>${m?.counts?.rules ?? "—"}</b><small>${esc(t("dash.rules_steps", { steps: m?.counts?.steps ?? "—" }))}</small></div></div></div>
+        <div class="stats"><div>${ICON.list}<div><b>${m?.counts?.safety_rules ?? "-"}</b><small>${t("dash.safety_rules")}</small></div></div><div>${ICON.doc}<div><b>${m?.counts?.rules ?? "-"}</b><small>${esc(t("dash.rules_steps", { steps: m?.counts?.steps ?? "-" }))}</small></div></div></div>
       </section>
       <section class="card upload-card video">
         <div class="card-head"><div class="icon-chip green"><svg viewBox="0 0 24 24"><path d="M9 7l8 5-8 5z" fill="#fff"/></svg></div><div><h3>${t("dash.video_title")}</h3><p>${t("dash.video_sub")}</p></div></div>
         ${dropzone("video", "video/*", t("dash.video_drop"))}
         ${videoRow(v)}
-        <div class="stats"><div>${ICON.clock}<div><b>${v ? fmtDuration(v.meta.duration) : "—"}</b><small>${t("dash.duration")}</small></div></div><div>${ICON.cam}<div><b>${v ? esc(v.meta.format_name.toUpperCase()) : "—"}</b><small>${t("dash.format")}</small></div></div><div>${ICON.screen}<div><b>${v ? `${v.meta.height}p` : "—"}</b><small>${t("dash.resolution")}</small></div></div></div>
+        <div class="stats"><div>${ICON.clock}<div><b>${v ? fmtDuration(v.meta.duration) : "-"}</b><small>${t("dash.duration")}</small></div></div><div>${ICON.cam}<div><b>${v ? esc(v.meta.format_name.toUpperCase()) : "-"}</b><small>${t("dash.format")}</small></div></div><div>${ICON.screen}<div><b>${v ? `${v.meta.height}p` : "-"}</b><small>${t("dash.resolution")}</small></div></div></div>
       </section>
     </div>
 
@@ -251,14 +260,14 @@ async function renderDashboard() {
     </section>
 
     <div class="grid-4">
-      ${metricCard(t("metric.trace"), metrics?.evidence_traceability, "#1a6cf0", metrics ? t("metric.trace_sub", { n: metrics.evidence_traceability.numerator, d: metrics.evidence_traceability.denominator }) : t("metric.empty"))}
-      ${metricCard(t("metric.safety"), metrics?.safety_coverage, "#12a150", metrics ? t("metric.safety_sub", { n: metrics.safety_coverage.numerator, d: metrics.safety_coverage.denominator }) : "")}
-      ${metricCard(t("metric.steps"), metrics?.step_coverage, "#1a6cf0", metrics ? t("metric.steps_sub", { n: metrics.step_coverage.numerator, d: metrics.step_coverage.denominator }) : "")}
-      <div class="card metric">${ring(metrics ? Math.min(violations / Math.max(metrics.counts ? Object.values(metrics.counts).reduce((a, b) => a + b, 0) : 1, 1), 1) : 0, "#e5484d")}<div class="ring-label" style="color:#e5484d">${metrics ? violations : "—"}</div></div>
+      ${metricCard(t("metric.trace"), metrics?.evidence_traceability, "blue", metrics ? t("metric.trace_sub", { n: metrics.evidence_traceability.numerator, d: metrics.evidence_traceability.denominator }) : t("metric.empty"))}
+      ${metricCard(t("metric.safety"), metrics?.safety_coverage, "green", metrics ? t("metric.safety_sub", { n: metrics.safety_coverage.numerator, d: metrics.safety_coverage.denominator }) : "")}
+      ${metricCard(t("metric.steps"), metrics?.step_coverage, "blue", metrics ? t("metric.steps_sub", { n: metrics.step_coverage.numerator, d: metrics.step_coverage.denominator }) : "")}
+      <div class="card metric">${ring(metrics ? Math.min(violations / Math.max(metrics.counts ? Object.values(metrics.counts).reduce((a, b) => a + b, 0) : 1, 1), 1) : 0, "red")}<div class="ring-label red">${metrics ? violations : "-"}</div></div>
         <div><h4>${t("metric.violations")}</h4><p>${metrics ? esc(violations === 1 ? t("metric.violations_one") : t("metric.violations_many", { n: violations })) : ""}</p></div></div>
     </div>
 
-    <div class="split" style="margin-top:20px">
+    <div class="split mt">
       <section class="card"><div class="card-head"><h3>${t("dash.recent")}</h3><div class="spacer"></div><a href="#runs">${t("dash.view_runs")}</a></div>${runsTable(d.recent_runs.slice(0, 6), true)}</section>
       <section class="card"><div class="card-head"><h3>${t("dash.findings")}</h3><div class="spacer"></div>${doneRun ? `<a href="#run/${esc(doneRun.id)}">${t("dash.view_findings")}</a>` : ""}</div>
         ${d.findings.length ? d.findings.slice(0, 2).map((f) => findingCard(f, true)).join('<div style="height:10px"></div>') : `<p class="empty">${doneRun ? t("dash.no_findings") : t("dash.findings_empty")}</p>`}
@@ -278,7 +287,7 @@ async function openRunDialog(preset = {}) {
   const [manuals, videos, demos] = await Promise.all([api("/api/manuals"), api("/api/videos"), api("/api/demo/observations")]);
   const ready = manuals.filter((m) => m.status === "ready");
   if (!ready.length) return toast(t("dialog.need_manual"));
-  form.manual_id.innerHTML = ready.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} — ${esc(m.procedure)} (${esc(m.filename)})</option>`).join("");
+  form.manual_id.innerHTML = ready.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} · ${esc(m.procedure)} (${esc(m.filename)})</option>`).join("");
   form.video_id.innerHTML = videos.map((v) => `<option value="${esc(v.id)}">${esc(v.filename)} (${fmtDuration(v.meta.duration)})</option>`).join("") || `<option value="">${esc(t("dialog.no_videos"))}</option>`;
   form.demo_observation.innerHTML = demos.map((o) => `<option value="${esc(o.name)}">${esc(LANG === "zh" && o.title_zh ? o.title_zh : o.title)}</option>`).join("");
   form.source.value = preset.video_id || videos.length ? "video" : "demo";
@@ -308,7 +317,7 @@ async function openPipelineDialog() {
   const form = $("#pipeline-form");
   const [manuals, videos, demos] = await Promise.all([api("/api/manuals"), api("/api/videos"), api("/api/demo/observations")]);
   const usable = manuals.filter((m) => m.status !== "failed");
-  form.manual_id.innerHTML = usable.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} — ${esc(m.procedure || m.procedure_hint || m.filename)} (${esc(m.filename)})</option>`).join("");
+  form.manual_id.innerHTML = usable.map((m) => `<option value="${esc(m.id)}">${esc(m.id)} · ${esc(m.procedure || m.procedure_hint || m.filename)} (${esc(m.filename)})</option>`).join("");
   form.video_id.innerHTML = videos.map((v) => `<option value="${esc(v.id)}">${esc(v.filename)} (${fmtDuration(v.meta.duration)})</option>`).join("") || `<option value="">${esc(t("dialog.no_videos"))}</option>`;
   form.demo_observation.innerHTML = demos.map((o) => `<option value="${esc(o.name)}">${esc(LANG === "zh" && o.title_zh ? o.title_zh : o.title)}</option>`).join("");
   form.manual_source.value = usable.length ? "existing" : "upload";
@@ -364,7 +373,7 @@ async function renderPipeline(id) {
   const state = (i) => (p.status === "done" || i < current ? "done" : i === current ? (failed ? "failed" : "active") : "");
   const detail = [
     p.manual.status === "ready"
-      ? `${esc(p.manual.procedure || "")} · ${p.manual.counts?.rules ?? "—"} ${esc(t("dash.rules_steps", { steps: p.manual.counts?.steps ?? "—" }))}`
+      ? `${esc(p.manual.procedure || "")} · ${p.manual.counts?.rules ?? "-"} ${esc(t("dash.rules_steps", { steps: p.manual.counts?.steps ?? "-" }))}`
       : esc(t(`status.${p.manual.status}`)),
     p.run ? (p.run.status === "done" ? resultBadge(p.run) : esc(p.run.stage ? stageLabel(p.run.stage) : t(`status.${p.run.status}`))) : "",
     p.skill_id ? `<span class="badge warn">${esc(t("skill.review.pending"))}</span>` : "",
@@ -442,7 +451,7 @@ async function askWhy(runId, ruleId, slot, button) {
 
 async function renderRun(id) {
   const [run, skills] = await Promise.all([rapi(`/api/runs/${encodeURIComponent(id)}`), rapi("/api/skills")]);
-  const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} — ${esc(run.manual_name)}</p>${run.video_note ? `<p><span class="badge warn">${esc(t("video.note"))}</span> ${esc(run.video_note)}</p>` : ""}</div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>`;
+  const head = `<div class="page-head"><div><h1>${esc(run.id)} · ${esc(run.video_name)}</h1><p>${esc(run.procedure)} · ${esc(run.manual_name)}</p>${run.video_note ? `<p><span class="badge warn">${esc(t("video.note"))}</span> ${esc(run.video_note)}</p>` : ""}</div><div class="spacer"></div><a class="btn ghost" href="#runs">${t("run.all")}</a></div>`;
   if (busy(run.status) || run.status === "failed") {
     view.innerHTML = `${head}<section class="card">${run.status === "failed" ? `<p class="error-text">${esc(t("run.failed", { error: run.error }))}</p>` : `<p>${ICON.spin} ${esc(t("run.working", { stage: stageLabel(run.stage) }))}</p>`}</section>`;
     return schedulePoll(busy(run.status));
@@ -455,7 +464,7 @@ async function renderRun(id) {
     <section class="card run-head">${resultBadge(run)}<div class="counts">${Object.entries(run.counts).map(([k, n]) => `${statusBadge(k)} <b>${n}</b>`).join(" &nbsp; ")}</div><div class="spacer" style="flex:1"></div>
       ${skill ? `<a class="btn ghost" href="#skill/${esc(skill.id)}">${esc(t("run.view_skill", { id: skill.id }))}</a>` : ""}
       <button class="btn primary" id="compile">${skill ? t("run.recompile_skill") : t("run.compile_skill")}</button></section>
-    <div class="split" style="margin-top:20px">
+    <div class="split mt">
       <div class="stack">
         <section class="card"><div class="card-head"><h3>${t("run.verdicts")}</h3><p>${t("run.verdicts_sub")}</p></div>
           <div class="verdicts">${verdicts.map((v) => `
@@ -473,7 +482,7 @@ async function renderRun(id) {
         </section>
         <section class="card"><div class="card-head"><h3>${t("run.alignment")}</h3><p>${t("run.alignment_sub")}</p></div>
           <table><thead><tr><th>${t("run.col_event")}</th><th>${t("run.col_observed")}</th><th>${t("run.col_matched")}</th><th>${t("run.col_method")}</th><th>${t("run.col_time")}</th></tr></thead><tbody>
-          ${report.alignment.map((a) => { const e = run.observation.events.find((x) => x.event_id === a.event_id) || {}; return `<tr><td>${esc(a.event_id)}</td><td>${esc(a.observed_label)}</td><td>${esc(a.aligned_labels.join(", ") || "—")}</td><td>${esc(t(`method.${a.method}`))}</td><td>${fmtTime(e.start)}–${fmtTime(e.end)}</td></tr>`; }).join("")}
+          ${report.alignment.map((a) => { const e = run.observation.events.find((x) => x.event_id === a.event_id) || {}; return `<tr><td class="id">${esc(a.event_id)}</td><td>${esc(a.observed_label)}</td><td>${esc(a.aligned_labels.join(", ") || "-")}</td><td>${esc(t(`method.${a.method}`))}</td><td>${fmtTime(e.start)} to ${fmtTime(e.end)}</td></tr>`; }).join("")}
           </tbody></table>
           ${run.traceability_issues?.length ? `<p class="error-text">${esc(t("run.trace_issues", { issues: run.traceability_issues.join("; ") }))}</p>` : ""}
         </section>
@@ -545,10 +554,10 @@ function signature(c) {
 async function renderManuals() {
   const manuals = (await rapi("/api/manuals")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("manuals.title")}</h1><p>${t("manuals.subtitle")}</p></div></div>
-    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card manual">${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
+    <div class="grid-2 mb"><section class="card upload-card manual">${dropzone("manual", ".pdf,.html,.htm,.md,.markdown,.txt", t("dash.manual_drop"))}
       <label class="procedure-input">${t("dash.procedure")} <input id="procedure" placeholder="${esc(t("manuals.procedure_ph"))}"></label></section></div>
     <section class="card">${manuals.length ? `<table><thead><tr><th>ID</th><th>${t("manuals.col_file")}</th><th>${t("manuals.col_procedure")}</th><th>${t("manuals.col_status")}</th><th>${t("manuals.col_rules")}</th><th>${t("manuals.col_safety")}</th><th>${t("manuals.col_steps")}</th><th>${t("manuals.col_uploaded")}</th></tr></thead><tbody>
-      ${manuals.map((m) => `<tr class="clickable" data-href="#manual/${esc(m.id)}"><td>${esc(m.id)}</td><td>${esc(m.filename)}</td><td>${esc(m.procedure || m.procedure_hint || "")}</td><td>${statusBadge(m.status)}</td><td>${m.counts?.rules ?? "—"}</td><td>${m.counts?.safety_rules ?? "—"}</td><td>${m.counts?.steps ?? "—"}</td><td>${fmtDate(m.created_at)}</td></tr>`).join("")}
+      ${manuals.map((m) => `<tr class="clickable" data-href="#manual/${esc(m.id)}"><td class="id">${esc(m.id)}</td><td>${esc(m.filename)}</td><td>${esc(m.procedure || m.procedure_hint || "")}</td><td>${statusBadge(m.status)}</td><td>${m.counts?.rules ?? "-"}</td><td>${m.counts?.safety_rules ?? "-"}</td><td>${m.counts?.steps ?? "-"}</td><td class="nowrap">${fmtDate(m.created_at)}</td></tr>`).join("")}
     </tbody></table>` : `<p class="empty">${t("manuals.none")}</p>`}</section>`;
   bindDropzones(view);
   bindRowLinks(view);
@@ -567,9 +576,9 @@ async function renderManual(id) {
       ${rs.requirements.map((r) => `<tr><td><b>${esc(r.rule_id)}</b><br>${esc(r.statement)}</td><td><code>${esc(signature(r.constraint))}</code></td><td>${esc(t(`category.${r.category}`))}</td><td>${severityBadge(r.severity)}</td><td>${r.observable ? t("common.yes") : t("common.no")}</td>
         <td>${r.evidence_ids.map((e) => m.evidence[e]).filter(Boolean).map((e) => `<b>${esc(e.citation)}</b> <q class="muted">${esc(e.text.slice(0, 160))}</q>`).join("<br>")}</td></tr>`).join("")}
       </tbody></table></section>
-      <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("manual.vocab")}</h3><p>${t("manual.vocab_sub")}</p></div>
+      <section class="card mt"><div class="card-head"><h3>${t("manual.vocab")}</h3><p>${t("manual.vocab_sub")}</p></div>
         <table><tbody>${rs.events.map((e) => `<tr><td><code>${esc(e.label)}</code></td><td>${esc(e.description)}</td></tr>`).join("")}</tbody></table></section>
-      ${m.rejected?.length ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("manual.rejected")}</h3><p>${t("manual.rejected_sub")}</p></div>
+      ${m.rejected?.length ? `<section class="card mt"><div class="card-head"><h3>${t("manual.rejected")}</h3><p>${t("manual.rejected_sub")}</p></div>
         <table><tbody>${m.rejected.map((r) => `<tr><td class="error-text">${esc(r.error)}</td><td><code>${esc(JSON.stringify(r.item).slice(0, 240))}</code></td></tr>`).join("")}</tbody></table></section>` : ""}` : ""}`;
   $("#recompile").addEventListener("click", async () => { await api(`/api/manuals/${encodeURIComponent(id)}/recompile`, { method: "POST" }); render(true); });
   schedulePoll(busy(m.status));
@@ -578,7 +587,7 @@ async function renderManual(id) {
 async function renderVideos() {
   const videos = (await rapi("/api/videos")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("videos.title")}</h1><p>${t("videos.subtitle")}</p></div></div>
-    <div class="grid-2" style="margin-bottom:20px"><section class="card upload-card video">${dropzone("video", "video/*", t("dash.video_drop"))}</section></div>
+    <div class="grid-2 mb"><section class="card upload-card video">${dropzone("video", "video/*", t("dash.video_drop"))}</section></div>
     <div class="grid-4">${videos.map((v) => `<section class="card"><img class="thumb" style="width:100%;height:150px" src="/api/videos/${esc(v.id)}/frame?t=${Math.min(2, v.meta.duration / 2).toFixed(1)}" alt="">
       <p style="margin:10px 0 2px"><b>${esc(v.filename)}</b></p>${v.note ? `<p style="margin:0 0 4px"><span class="badge warn">${esc(t("video.note"))}</span> ${esc(v.note)}</p>` : ""}<p class="muted" style="margin:0">${esc(v.id)} · ${fmtDuration(v.meta.duration)} · ${v.meta.width}×${v.meta.height} · ${fmtBytes(v.size_bytes)}</p>
       <button class="btn primary small" style="margin-top:10px" data-verify="${esc(v.id)}">${t("videos.verify")}</button></section>`).join("") || `<p class="empty">${t("videos.none")}</p>`}</div>`;
@@ -590,7 +599,7 @@ async function renderSkills() {
   const skills = (await rapi("/api/skills")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("skills.title")}</h1><p>${t("skills.subtitle")}</p></div></div>
     <section class="card">${skills.length ? `<table><thead><tr><th>ID</th><th>${t("skills.col_skill")}</th><th>${t("skills.col_procedure")}</th><th>${t("skills.col_verified")}</th><th>${t("skills.col_results")}</th><th>${t("skills.col_review")}</th><th>${t("skills.col_created")}</th><th></th></tr></thead><tbody>
-    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${reviewBadge(s)}</td><td>${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
+    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${reviewBadge(s)}</td><td class="nowrap">${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
     </tbody></table>` : `<p class="empty">${t("skills.none")}</p>`}</section>`;
   bindRowLinks(view);
 }
@@ -611,10 +620,10 @@ async function renderSkill(id) {
 async function renderReports() {
   const runs = (await rapi("/api/runs")).filter((r) => r.status === "done" && matches(r));
   const details = await Promise.all(runs.slice(0, 20).map((r) => rapi(`/api/runs/${encodeURIComponent(r.id)}`)));
-  const pct = (m) => (m ? `${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span>` : "—");
+  const pct = (m) => (m ? `${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span>` : "-");
   view.innerHTML = `<div class="page-head"><div><h1>${t("reports.title")}</h1><p>${t("reports.subtitle")}</p></div></div>
     <section class="card">${details.length ? `<table><thead><tr><th>${t("reports.col_run")}</th><th>${t("runs.col_video")}</th><th>${t("runs.col_result")}</th><th>${t("reports.col_trace")}</th><th>${t("reports.col_safety")}</th><th>${t("reports.col_steps")}</th><th>${t("reports.col_alignment")}</th><th>${t("reports.col_pass")}</th><th>${t("reports.col_violation")}</th><th>${t("reports.col_unverified")}</th><th>${t("reports.col_insufficient")}</th></tr></thead><tbody>
-    ${details.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td>${esc(r.id)}</td><td>${esc(r.video_name)}</td><td>${resultBadge(r)}</td><td>${pct(r.metrics.evidence_traceability)}</td><td>${pct(r.metrics.safety_coverage)}</td><td>${pct(r.metrics.step_coverage)}</td><td>${pct(r.metrics.observation_alignment)}</td>
+    ${details.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td class="id">${esc(r.id)}</td><td>${esc(r.video_name)}</td><td>${resultBadge(r)}</td><td>${pct(r.metrics.evidence_traceability)}</td><td>${pct(r.metrics.safety_coverage)}</td><td>${pct(r.metrics.step_coverage)}</td><td>${pct(r.metrics.observation_alignment)}</td>
       <td>${r.counts.PASS}</td><td>${r.counts.VIOLATION}</td><td>${r.counts.UNVERIFIED}</td><td>${r.counts.INSUFFICIENT_EVIDENCE}</td></tr>`).join("")}
     </tbody></table>` : `<p class="empty">${t("reports.none")}</p>`}</section>`;
   bindRowLinks(view);
@@ -632,7 +641,7 @@ function baselineChip(label, truth) {
 function cvSection(cv) {
   const d = cv.ddm_vlm_cv;
   const row = (key, b, cls) => `<tr><td>${esc(t(key))}</td><td>${b.recordings}</td><td>${b.gold_events}</td><td>${b.precision.toFixed(3)}</td><td>${b.recall.toFixed(3)}</td>
-    <td><b>${b.f1.toFixed(3)}</b> <span class="muted small">[${b.f1_ci95[0].toFixed(2)}–${b.f1_ci95[1].toFixed(2)}]</span></td><td class="barcell">${ciBar(b.f1, b.f1_ci95, cls)}</td></tr>`;
+    <td><b>${b.f1.toFixed(3)}</b> <span class="muted small">[${b.f1_ci95[0].toFixed(2)} to ${b.f1_ci95[1].toFixed(2)}]</span></td><td class="barcell">${ciBar(b.f1, b.f1_ci95, cls)}</td></tr>`;
   const rows = [
     d.all && row("eval.cv.row_ddm_all", d.all, "good"),
     d.untouched && row("eval.cv.row_ddm_untouched", d.untouched, "good"),
@@ -641,7 +650,7 @@ function cvSection(cv) {
   ].filter(Boolean).join("");
   const paired = (k, key) => cv.paired_f1_difference?.[k] ? `<li>${esc(t(key, { d: cv.paired_f1_difference[k].difference.toFixed(3), lo: cv.paired_f1_difference[k].ci95[0].toFixed(2), hi: cv.paired_f1_difference[k].ci95[1].toFixed(2), n: cv.paired_f1_difference[k].recordings }))}</li>` : "";
   const folds = Object.entries(d.per_fold).map(([f, x]) => `<span class="chip ok">${esc(f.replace("fold", t("eval.cv.fold") + " "))}: F1 ${x.f1.toFixed(2)}</span>`).join("");
-  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.cv")}</h3><p>${t("eval.cv_sub", { n: cv.protocol.recordings })}</p></div>
+  return `<section class="card mt"><div class="card-head"><h3>${t("eval.cv")}</h3><p>${t("eval.cv_sub", { n: cv.protocol.recordings })}</p></div>
     <table class="eval-table"><thead><tr><th>${t("eval.cv.col_setup")}</th><th>${t("eval.cv.col_rec")}</th><th>${t("eval.cv.col_events")}</th><th>${t("eval.col_precision")}</th><th>${t("eval.col_recall")}</th><th>F1 [95% CI]</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <ul class="cv-notes">${paired("all", "eval.cv.paired_all")}${paired("untouched", "eval.cv.paired_untouched")}</ul>
     <p class="chips">${folds}</p><p class="muted small">${esc(t("eval.cv_note"))}</p></section>`;
@@ -649,7 +658,7 @@ function cvSection(cv) {
 
 function fragmentMergeSection(fm) {
   const b = fm.before.all, a = fm.after.all, d = fm.paired_f1_difference;
-  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.fm")}</h3><p>${t("eval.fm_sub")}</p></div>
+  return `<section class="card mt"><div class="card-head"><h3>${t("eval.fm")}</h3><p>${t("eval.fm_sub")}</p></div>
     <div class="tiles">
       <div class="tile"><b>${b.precision} → ${a.precision}</b><span>${esc(t("eval.fm.precision"))}</span></div>
       <div class="tile"><b>${b.recall} → ${a.recall}</b><span>${esc(t("eval.fm.recall"))}</span></div>
@@ -662,7 +671,7 @@ function secondLookSection(sl) {
   const a = sl.cross_validation_recordings, e = sl.edited_recordings;
   const violating = e.rows.filter((r) => r.truth !== "Compliant").length;
   const compliant = e.rows.length - violating;
-  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.sl")}</h3><p>${t("eval.sl_sub", { n: a.weak_events })}</p></div>
+  return `<section class="card mt"><div class="card-head"><h3>${t("eval.sl")}</h3><p>${t("eval.sl_sub", { n: a.weak_events })}</p></div>
     <div class="tiles">
       <div class="tile"><b>${esc(a.true_events_confirmed)}</b><span>${esc(t("eval.sl.true"))}</span></div>
       <div class="tile weak"><b>${esc(a.false_events_confirmed)}</b><span>${esc(t("eval.sl.false"))}</span></div>
@@ -689,20 +698,20 @@ async function renderEvaluation() {
     <section class="card"><div class="card-head"><h3>${t("eval.agents")}</h3><p>${t("eval.agents_sub")}</p></div>
       <div class="agent-flow">${agentCard(d.agents[0])}<div class="flow-arrow"><code>run_root_cause_analysis</code><span>→</span><small>${esc(t("eval.delegates"))}</small></div>${agentCard(d.agents[1])}</div></section>
     ${d.cross_validation ? cvSection(d.cross_validation) : ""}
-    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.tuning")}</h3><p>${t("eval.tuning_sub")}</p></div>
+    <section class="card mt"><div class="card-head"><h3>${t("eval.tuning")}</h3><p>${t("eval.tuning_sub")}</p></div>
       ${shipped && first ? `<p class="callout">${esc(t("eval.tuning_delta", { from: first.f1, to: shipped.f1 }))}</p>` : ""}
       <table class="eval-table"><thead><tr><th>${t("eval.col_backend")}</th><th>F1</th><th></th><th>${t("eval.col_precision")}</th><th>${t("eval.col_recall")}</th><th>${t("eval.col_seq")}</th><th>${t("eval.col_time")}</th></tr></thead><tbody>
       ${d.backends.map((r) => `<tr class="${r.shipped ? "shipped" : ""}"><td>${esc(t(`eval.backend.${r.id}`))}${r.shipped ? ` <span class="badge tone-green">${esc(t("eval.deployed"))}</span>` : ""}</td><td><b>${r.f1.toFixed(3)}</b></td><td class="barcell">${bar(r.f1, 1, r.shipped ? "good" : "")}</td><td>${r.precision.toFixed(3)}</td><td>${r.recall.toFixed(3)}</td><td>${r.sequence_similarity.toFixed(3)}</td><td>${Math.round(r.seconds_per_video)}s</td></tr>`).join("")}
       </tbody></table><p class="muted small">${esc(t("eval.tuning_note"))}</p></section>
-    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.vlm")}</h3><p>${t("eval.vlm_sub")}</p></div>
+    <section class="card mt"><div class="card-head"><h3>${t("eval.vlm")}</h3><p>${t("eval.vlm_sub")}</p></div>
       <table class="eval-table"><tbody>${d.vlm_selection.map((r, i) => `<tr class="${i === 0 ? "shipped" : ""}"><td>${esc(r.model)} <span class="muted small">${esc(t(r.think_off ? "eval.mode_off" : "eval.mode_default"))}</span></td><td><b>${r.correct}/${r.cases}</b></td><td class="barcell">${bar(r.accuracy, 1, i === 0 ? "good" : "")}</td><td>${r.seconds}s / ${esc(t("eval.per_clip"))}</td></tr>`).join("")}</tbody></table></section>
-    ${b ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.baseline")}</h3><p>${t("eval.baseline_sub")}</p></div>${tiles}
+    ${b ? `<section class="card mt"><div class="card-head"><h3>${t("eval.baseline")}</h3><p>${t("eval.baseline_sub")}</p></div>${tiles}
       <table class="eval-table"><thead><tr><th>${t("eval.col_video")}</th><th>${t("eval.col_truth")}</th><th>${t("eval.col_vlm")}</th><th>PraxiProof</th></tr></thead><tbody>
       ${b.videos.map((v) => `<tr><td>${esc(v.id)}</td><td>${esc(labelText(v.truth))}</td><td class="chips">${v.baseline.map((l) => baselineChip(l, v.truth)).join("")}</td><td>${v.praxiproof === v.truth ? `<span class="chip ok">${esc(labelText(v.praxiproof))}</span>` : `<span class="chip warn">${esc(labelText(v.praxiproof))}</span>`}</td></tr>`).join("")}
       </tbody></table><p class="muted small">${esc(t("eval.baseline_note"))}</p></section>` : ""}
     ${d.fragment_merge ? fragmentMergeSection(d.fragment_merge) : ""}
     ${d.second_look ? secondLookSection(d.second_look) : ""}
-    ${d.stepfun ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
+    ${d.stepfun ? `<section class="card mt"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
       <table class="eval-table"><thead><tr><th>${t("eval.col_model")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_rules")}</th></tr></thead><tbody>
       ${d.stepfun.runs.map((r) => `<tr><td>${esc(r.model)}</td><td>${r.seconds}s</td><td>${r.error ? `<span class="chip bad">${esc(r.error)}</span>` : `${r.rules}${r.rejected ? ` <span class="muted small">(${esc(t("eval.rejected", { n: r.rejected }))})</span>` : ""}`}</td></tr>`).join("")}
       </tbody></table><p class="muted small">${esc(t("eval.stepfun_note"))}</p></section>` : ""}`;
@@ -722,7 +731,7 @@ async function renderSettings() {
     const fits = models.filter((m) => m.capabilities.includes(capability));
     const names = new Set(fits.map((m) => m.name));
     const extra = names.has(current) ? "" : `<option value="${esc(current)}" selected>${esc(current)}</option>`;
-    return extra + fits.map((m) => `<option value="${esc(m.name)}" ${m.name === current ? "selected" : ""}>${esc(m.name)}${describe(m) ? ` — ${esc(describe(m))}` : ""}</option>`).join("");
+    return extra + fits.map((m) => `<option value="${esc(m.name)}" ${m.name === current ? "selected" : ""}>${esc(m.name)}${describe(m) ? ` · ${esc(describe(m))}` : ""}</option>`).join("");
   };
   const place = (where) => (where === "local" ? t("settings.data_flow_local") : where);
   const ok = (b) => (b ? `<span class="badge pass">${t("settings.available")}</span>` : `<span class="badge violation">${t("settings.missing")}</span>`);
@@ -746,9 +755,9 @@ async function renderSettings() {
       <p class="form-error" id="settings-error"></p>
       <div><button class="btn primary" type="submit">${t("settings.save")}</button></div>
     </form>
-    <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("settings.system")}</h3></div><div class="kv">
+    <section class="card mt"><div class="card-head"><h3>${t("settings.system")}</h3></div><div class="kv">
       <div>${t("settings.language")}</div><div><button class="btn small ${LANG === "en" ? "primary" : "ghost"}" data-lang="en">English</button> <button class="btn small ${LANG === "zh" ? "primary" : "ghost"}" data-lang="zh">中文</button></div>
-      <div>Ollama</div><div>${esc(s.ollama_url)} — ${h.ollama === "ok" ? `<span class="badge pass">${t("settings.reachable")}</span>` : `<span class="badge violation">${esc(h.ollama)}</span>`}</div>
+      <div>Ollama</div><div>${esc(s.ollama_url)} · ${h.ollama === "ok" ? `<span class="badge pass">${t("settings.reachable")}</span>` : `<span class="badge violation">${esc(h.ollama)}</span>`}</div>
       <div>${t("settings.data_flow")}</div><div>${esc(t("settings.data_flow_text", { where: place(s.data_flow.text) }))}<br>${esc(t("settings.data_flow_frames", { where: place(s.data_flow.frames) }))}</div>
       <div>${t("settings.version")}</div><div>${esc(h.version)}</div>
     </div></section>`;
@@ -787,19 +796,56 @@ async function renderSettings() {
 }
 
 async function refreshHealth() {
+  const el = $("#health");
   try {
     const h = await api("/health");
     const good = h.ollama === "ok" && Object.values(h.models).every(Boolean);
-    $("#health").className = `health ${good ? "ok" : "bad"}`;
-    $("#health").title = good ? t("top.health_ok") : t("top.health_bad", { detail: h.ollama });
+    el.className = `health ${good ? "ok" : "bad"}`;
+    el.textContent = good ? t("top.health_ok") : t("top.health_bad_short");
+    el.title = good ? t("top.health_ok") : t("top.health_bad", { detail: h.ollama });
   } catch {
-    $("#health").className = "health bad";
+    el.className = "health bad";
+    el.textContent = t("top.health_bad_short");
+  }
+  refreshDataNote();
+}
+
+// Where the text and the video frames are sent, straight from the server's provider configuration.
+async function refreshDataNote() {
+  try {
+    const flow = (await api("/api/settings")).data_flow;
+    const place = (where) => (where === "local" ? t("settings.data_flow_local") : where);
+    $("#flow-text").textContent = place(flow.text);
+    $("#flow-frames").textContent = place(flow.frames);
+    $("#data-note").hidden = false;
+  } catch {
+    $("#data-note").hidden = true;
   }
 }
 
-// Minimal, XSS-safe markdown for agent answers: **bold**, `code`, "* item" bullets, blank-line paragraphs.
+function applyTheme(theme) {
+  if (theme) document.documentElement.dataset.theme = theme;
+  else delete document.documentElement.dataset.theme;
+}
+try {
+  applyTheme(localStorage.getItem("pp-theme"));
+} catch {}
+$("#theme-toggle").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const next = dark ? "light" : "dark";
+  applyTheme(next);
+  try {
+    localStorage.setItem("pp-theme", next);
+  } catch {}
+});
+
+// Minimal, XSS-safe markdown for agent answers: # headings, **bold**, *italic*, `code`, "* item" bullets, blank-line paragraphs.
 function mdLite(text) {
-  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const inline = (s) =>
+    esc(s)
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?![*\w])/g, "$1<em>$2</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
   const out = [];
   let list = false;
   for (const line of String(text).split("\n")) {
@@ -812,11 +858,16 @@ function mdLite(text) {
     }
     if (list) out.push("</ul>");
     list = false;
-    if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+    const heading = line.match(/^#{1,4}\s+(.*)$/);
+    if (heading) out.push(`<h4>${inline(heading[1])}</h4>`);
+    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
   }
   if (list) out.push("</ul>");
   return out.join("");
 }
+
+// Shapes of a page while it loads (announced once for assistive tech; the real content replaces it).
+const skeleton = () => `<div role="status" aria-label="${esc(t("common.loading"))}"><div class="sk title"></div><div class="sk line"></div><div class="sk block mt"></div><div class="sk block mt"></div></div>`;
 
 async function render(keepScroll = false) {
   const token = ++state.renderToken;
@@ -825,7 +876,8 @@ async function render(keepScroll = false) {
   const navView = { run: "runs", pipeline: "runs", manual: "manuals", skill: "skills" }[route] || route;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === navView));
   const scroll = window.scrollY;
-  if (!keepScroll) view.innerHTML = `<p class="empty">${t("common.loading")}</p>`;
+  view.classList.toggle("enter", !keepScroll);  // page entrance only on navigation, not on the 3 s polling refresh
+  if (!keepScroll) view.innerHTML = skeleton();
   const routes = { dashboard: renderDashboard, runs: renderRuns, run: () => renderRun(id), pipeline: () => renderPipeline(id), manuals: renderManuals, manual: () => renderManual(id), videos: renderVideos, skills: renderSkills, skill: () => renderSkill(id), reports: renderReports, evaluation: renderEvaluation, settings: renderSettings };
   try {
     await (routes[route] || renderDashboard)();
@@ -841,6 +893,8 @@ function applyStaticText() {
   document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
   document.querySelectorAll("[data-i18n-html]").forEach((el) => (el.innerHTML = t(el.dataset.i18nHtml)));
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => (el.placeholder = t(el.dataset.i18nPlaceholder)));
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => (el.title = t(el.dataset.i18nTitle)));
 }
 
 function switchLang(lang) {

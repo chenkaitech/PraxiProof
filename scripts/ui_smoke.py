@@ -44,10 +44,16 @@ def main() -> int:
         page.on("response", lambda r: problems.append(f"HTTP {r.status}: {r.url}") if r.status >= 400 else None)
 
         def check_text(label: str) -> None:
-            text = page.inner_text("#view")
-            for bad in ("undefined", "NaN", "[object", "eval.", "rca.", "trace."):
+            text = page.inner_text("body")
+            for bad in ("undefined", "NaN", "[object", "eval.", "rca.", "trace.", "\u2014", "\u2013"):
                 if bad in text:
                     problems.append(f"{label}: page text contains {bad!r}")
+            # a button or badge label that wraps onto a second line is a layout bug
+            wrapped = page.evaluate(
+                """() => [...document.querySelectorAll('#view .btn, #view .badge')].filter(e => e.offsetParent && e.getClientRects().length && e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).lineHeight) * 1.6 + 16).map(e => e.textContent.trim().slice(0, 30))"""
+            )
+            if wrapped:
+                problems.append(f"{label}: wrapped labels {wrapped}")
 
         for view in VIEWS:
             page.goto(f"{args.base}/#{view}")
@@ -84,7 +90,34 @@ def main() -> int:
         check_text(f"run {run_id}")
         print(f"ok  run {run_id} (and no stale render overwrote it)")
 
+        # dark theme and a phone-width screen: nothing may overflow sideways, screenshots go to the repo
+        for theme in ("dark", "light"):
+            page.evaluate(f"localStorage.setItem('pp-theme', '{theme}')")
+            page.goto(f"{args.base}/#dashboard")
+            page.reload()
+            page.wait_for_selector(".pipeline", timeout=20_000)
+            if page.evaluate("document.documentElement.dataset.theme") != theme:
+                problems.append(f"theme {theme} was not applied")
+            if theme == "dark":
+                page.wait_for_timeout(600)  # let the page entrance finish so the shot shows settled content
+                page.screenshot(path=str(args.out / "dashboard-dark.png"))
+        page.evaluate("localStorage.removeItem('pp-theme')")
+        phone = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2).new_page()
+        phone.on("pageerror", lambda e: problems.append(f"phone pageerror: {str(e)[:150]}"))
+        for view in ("dashboard", "runs", "evaluation", "settings"):
+            phone.goto(f"{args.base}/#{view}")
+            phone.wait_for_timeout(1800)
+            overflow = phone.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            if overflow > 1:
+                problems.append(f"phone {view}: page is {overflow}px wider than the screen")
+            if view == "dashboard":
+                phone.wait_for_timeout(600)
+                phone.screenshot(path=str(args.out / "dashboard-mobile.png"))
+        phone.close()
+
         if not args.skip_agent:
+            page.goto(f"{args.base}/#run/{run_id}")
+            page.wait_for_selector("[data-why]", timeout=20_000)
             page.click("[data-why]")
             page.wait_for_selector(".why-slot .rca-card", timeout=AGENT_WAIT_MS)
             page.locator(".verdict", has=page.locator("[data-why]")).first.screenshot(path=str(args.out / "run-why.png"))

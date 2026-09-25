@@ -42,7 +42,7 @@ class Evidence(BaseModel):
             if loc.page is not None:
                 return f"p.{loc.page}"
             return loc.section or f"block {loc.block_index}"
-        return f"{format_timestamp(loc.start)}–{format_timestamp(loc.end)}"
+        return f"{format_timestamp(loc.start)} to {format_timestamp(loc.end)}"
 
 
 def format_timestamp(seconds: float) -> str:

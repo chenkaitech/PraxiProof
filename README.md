@@ -61,9 +61,13 @@ manual (PDF/HTML)                 video (mp4)
 
 ## 界面截图
 
-评测页(同一份数据的中文版见 `docs/screenshots/evaluation-zh.png`),以及 Agent 追问时展开的协作轨迹——Compliance Agent 委托 RCA Agent,后者用自己的原始数据工具得出结构化结论。截图由 `scripts/ui_smoke.py` 在真实浏览器里跑线上服务时生成,同一个脚本还会在页面出现控制台报错、接口失败或未翻译文本时直接失败。
+评测页(同一份数据的中文版见 `docs/screenshots/evaluation-zh.png`),以及 Agent 追问时展开的协作轨迹——Compliance Agent 委托 RCA Agent,后者用自己的原始数据工具得出结构化结论。截图由 `scripts/ui_smoke.py` 在真实浏览器里跑线上服务时生成,同一个脚本还会在页面出现控制台报错、接口失败、未翻译文本、长破折号、折行的按钮、手机宽度下的横向溢出时直接失败。
 
 ![评测页](docs/screenshots/evaluation.png)
+
+深色主题(跟随系统,也可以手动切换)和手机宽度的仪表盘:
+
+<img src="docs/screenshots/dashboard-dark.png" width="62%"> <img src="docs/screenshots/dashboard-mobile.png" width="22%">
 
 ![Agent 协作轨迹](docs/screenshots/run-agent-trace.png)
 
@@ -265,6 +269,10 @@ PRAXIPROOF_VLM_PROVIDER=ollama
 ## 许可证
 
 Apache License 2.0,全文见 `LICENSE`。
+
+## 第三方字体
+
+界面自带 Geist 和 Geist Mono(`src/praxiproof/api/static/fonts/`,SIL Open Font License 1.1,许可证全文在同目录 `OFL.txt`),不依赖外部 CDN,所以在没有外网的 Spark 上也是同样的字形。中文回退到系统字体(苹方、微软雅黑、Noto Sans SC)。
 
 ## 技术栈
 
