@@ -76,11 +76,12 @@ def main() -> None:
         print("\n".join(str(p) for p in make_edits(args.data, args.video, args.out)))
     elif args.command == "eval-sop":
         from praxiproof.eval.nvidia_sop import evaluate
-        from praxiproof.llm import build_llm
+        from praxiproof.llm import build_llm, build_vlm
         from praxiproof.video.backend import get_backend
 
         settings = load_overrides(get_settings())
-        backend = get_backend(settings, build_llm(settings))
+        llm = build_llm(settings)
+        backend = get_backend(settings, llm, build_vlm(settings, llm))
         print(json.dumps(evaluate(args.data, args.videos, backend, args.out)["summary"], indent=2))
     else:
         from praxiproof.constraints.compiler import compile_requirements

@@ -1,0 +1,7 @@
+provider=openai model=step-3.5-flash
+run 1: 14 rules, 0 rejected, 0 repaired (76s)
+run 2: 16 rules, 0 rejected, 0 repaired (79s)
+run 3: 1 rules, 14 rejected, 0 repaired (1077s)
+    14 x undefined events
+    e.g. undefined events: ['new_fan_unpacked'] | {'statement': 'The new replacement fan module must be removed from its packaging before installation.', 'category': 'procedure', 'severity': 'major', 'observabl
+    e.g. undefined events: ['bezel_removed'] | {'statement': 'The system bezel must be removed to expose the front fan modules for access during replacement.', 'category': 'procedure', 'severity': 'major', '

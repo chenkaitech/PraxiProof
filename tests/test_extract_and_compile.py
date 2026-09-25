@@ -139,3 +139,68 @@ def test_compile_raises_when_nothing_selected(reference):
     doc = reference[1].model_copy(update={"blocks": []})
     with pytest.raises(ValueError):
         compile_requirements(doc, FakeLLM(), "fake", procedure="x")
+
+
+def _rule(statement, constraint, blocks=(1,)):
+    return {"statement": statement, "category": "procedure", "severity": "major", "observable": True, "source_blocks": list(blocks), "constraint": constraint}
+
+
+def _c(type_, **fields):
+    return {"type": type_, "event": None, "a": None, "b": None, "seconds": None, "min_count": None} | fields
+
+
+REPAIR_RAW = {
+    "procedure": "p",
+    "sequence": ["bezel_removed", "fan_removed"],
+    "events": [{"label": "bezel_removed", "description": "d"}, {"label": "fan_removed", "description": "d"}],
+    "requirements": [
+        _rule("good", _c("MUST_HAVE", event="fan_removed")),
+        _rule("order", _c("BEFORE", event="bezel_removed", a="bezel_removed", b="fan_removed")),  # `event` must be null here
+    ],
+}
+FIXED_ORDER = _rule("order", _c("BEFORE", a="bezel_removed", b="fan_removed"))
+
+
+def _repairing_llm(repair):
+    def handler(model, messages, schema, images):
+        return repair(messages) if list(schema["properties"]) == ["requirements"] else REPAIR_RAW
+
+    return FakeLLM(json_handler=handler)
+
+
+def test_a_rejected_rule_is_repaired_once_with_the_exact_error_quoted(reference):
+    seen = {}
+
+    def repair(messages):
+        seen["prompt"] = messages[-1]["content"]
+        return {"requirements": [FIXED_ORDER]}
+
+    fake = _repairing_llm(repair)
+    result = compile_requirements(reference[1], fake, "fake-llm")
+    assert [r.statement for r in result.requirement_set.requirements] == ["good", "order"] and result.repaired == 1
+    assert result.rejected == [] and len(fake.json_calls) == 2
+    assert "does not use 'event'" in seen["prompt"] and "bezel_removed" in seen["prompt"]
+
+
+def test_a_repair_still_goes_through_the_validator(reference):
+    still_wrong = _rule("order", _c("BEFORE", event="bezel_removed", a="bezel_removed", b="fan_removed"))
+    unknown = _rule("other", _c("MUST_HAVE", event="never_defined"))
+    result = compile_requirements(reference[1], _repairing_llm(lambda m: {"requirements": [still_wrong, unknown]}), "fake-llm")
+    assert [r.statement for r in result.requirement_set.requirements] == ["good"] and result.repaired == 0
+    assert len(result.rejected) >= 1  # nothing was let through
+
+
+def test_a_failing_repair_call_keeps_the_first_result(reference):
+    from praxiproof.llm import LLMError
+
+    def boom(messages):
+        raise LLMError("cloud hiccup")
+
+    result = compile_requirements(reference[1], _repairing_llm(boom), "fake-llm")
+    assert [r.statement for r in result.requirement_set.requirements] == ["good"] and result.repaired == 0
+
+
+def test_nothing_is_repaired_when_nothing_was_rejected(reference):
+    fake = FakeLLM(json_handler=lambda *_: reference_as_llm_output(reference))
+    result = compile_requirements(reference[1], fake, "fake-llm", procedure="Front Fan Module Replacement")
+    assert result.repaired == 0 and len(fake.json_calls) == 1

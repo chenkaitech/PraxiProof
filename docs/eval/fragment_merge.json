@@ -1,0 +1,100 @@
+{
+  "tolerance": 1.2,
+  "note": "Typical durations come from the other folds' recordings. The tolerance was picked after inspecting these same recordings.",
+  "before": {
+    "all": {
+      "recordings": 12,
+      "gold_events": 108,
+      "precision": 0.825,
+      "recall": 0.963,
+      "f1": 0.889,
+      "f1_ci95": [
+        0.846,
+        0.926
+      ],
+      "mean_sequence_similarity": 0.831,
+      "mean_seconds_per_video": 514.3
+    },
+    "untouched": {
+      "recordings": 10,
+      "gold_events": 90,
+      "precision": 0.804,
+      "recall": 0.956,
+      "f1": 0.873,
+      "f1_ci95": [
+        0.828,
+        0.908
+      ],
+      "mean_sequence_similarity": 0.807,
+      "mean_seconds_per_video": 526.1
+    }
+  },
+  "after": {
+    "all": {
+      "recordings": 12,
+      "gold_events": 108,
+      "precision": 0.929,
+      "recall": 0.963,
+      "f1": 0.945,
+      "f1_ci95": [
+        0.897,
+        0.986
+      ],
+      "mean_sequence_similarity": 0.908,
+      "mean_seconds_per_video": 514.3
+    },
+    "untouched": {
+      "recordings": 10,
+      "gold_events": 90,
+      "precision": 0.915,
+      "recall": 0.956,
+      "f1": 0.935,
+      "f1_ci95": [
+        0.88,
+        0.978
+      ],
+      "mean_sequence_similarity": 0.89,
+      "mean_seconds_per_video": 526.1
+    }
+  },
+  "paired_f1_difference": {
+    "difference": 0.056,
+    "ci95": [
+      0.042,
+      0.072
+    ],
+    "recordings": 12
+  },
+  "tolerance_sweep": {
+    "1.0": {
+      "precision": 0.874,
+      "recall": 0.963,
+      "f1": 0.916,
+      "events": 119
+    },
+    "1.1": {
+      "precision": 0.92,
+      "recall": 0.963,
+      "f1": 0.941,
+      "events": 113
+    },
+    "1.2": {
+      "precision": 0.929,
+      "recall": 0.963,
+      "f1": 0.945,
+      "events": 112
+    },
+    "1.3": {
+      "precision": 0.936,
+      "recall": 0.954,
+      "f1": 0.945,
+      "events": 110
+    },
+    "1.5": {
+      "precision": 0.943,
+      "recall": 0.917,
+      "f1": 0.93,
+      "events": 105
+    }
+  }
+}

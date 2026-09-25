@@ -3,6 +3,8 @@ name = "praxiproof"
 version = "0.1.0"
 description = "Compile procedure manuals into executable constraints and verify operation videos against them with traceable evidence."
 requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",

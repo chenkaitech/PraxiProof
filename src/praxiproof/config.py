@@ -7,6 +7,7 @@ from typing import Any
 EDITABLE = ("llm_model", "vlm_model", "vlm_thinking", "video_backend", "sop_bp_url", "ddm_checkpoint", "reference_dir", "min_confidence", "second_look")
 VIDEO_BACKENDS = ("local_vlm", "ddm_vlm", "nvidia_sop")
 LLM_PROVIDERS = ("ollama", "openai")
+VLM_PROVIDERS = ("same", "ollama")
 
 
 @dataclass(frozen=True)
@@ -28,12 +29,34 @@ class Settings:
     keep_alive: str
     min_confidence: float
     second_look: bool
+    max_upload_mb: int = 2048
+    api_token: str | None = None
+    max_concurrent_jobs: int = 2
+    vlm_provider: str = "same"
+    openai_timeout: float = 60.0  # longest silence tolerated while a response streams in
+    openai_stream: bool = True
+
+
+def _positive_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 0
+    if value < 1:
+        raise ValueError(f"{name} must be a positive integer, got {raw!r}")
+    return value
 
 
 def get_settings() -> Settings:
     llm_provider = os.environ.get("PRAXIPROOF_LLM_PROVIDER", "ollama")
     if llm_provider not in LLM_PROVIDERS:
         raise ValueError(f"PRAXIPROOF_LLM_PROVIDER must be one of {LLM_PROVIDERS}, got {llm_provider!r}")
+    vlm_provider = os.environ.get("PRAXIPROOF_VLM_PROVIDER", "same")
+    if vlm_provider not in VLM_PROVIDERS:
+        raise ValueError(f"PRAXIPROOF_VLM_PROVIDER must be one of {VLM_PROVIDERS}, got {vlm_provider!r}")
     return Settings(
         ollama_url=os.environ.get("PRAXIPROOF_OLLAMA_URL", "http://127.0.0.1:11434"),
         llm_provider=llm_provider,
@@ -52,6 +75,12 @@ def get_settings() -> Settings:
         keep_alive=os.environ.get("PRAXIPROOF_KEEP_ALIVE", "5m"),
         min_confidence=float(os.environ.get("PRAXIPROOF_MIN_CONFIDENCE", "0.5")),
         second_look=os.environ.get("PRAXIPROOF_SECOND_LOOK", "false").lower() in ("1", "true", "yes"),
+        max_upload_mb=_positive_int("PRAXIPROOF_MAX_UPLOAD_MB", 2048),
+        api_token=os.environ.get("PRAXIPROOF_API_TOKEN") or None,
+        max_concurrent_jobs=_positive_int("PRAXIPROOF_MAX_CONCURRENT_JOBS", 2),
+        vlm_provider=vlm_provider,
+        openai_timeout=float(_positive_int("PRAXIPROOF_OPENAI_TIMEOUT", 60)),
+        openai_stream=os.environ.get("PRAXIPROOF_OPENAI_STREAM", "true").lower() in ("1", "true", "yes"),
     )
 
 
@@ -73,7 +102,7 @@ def save_overrides(settings: Settings) -> None:
     path.write_text(json.dumps({k: asdict(settings)[k] for k in EDITABLE}, indent=2), encoding="utf-8")
 
 
-def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | None) -> dict[str, Any]:
+def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | None, llm_in_models: bool = True) -> dict[str, Any]:
     unknown = set(changes) - set(EDITABLE)
     if unknown:
         raise ValueError(f"settings not editable: {sorted(unknown)}")
@@ -106,8 +135,8 @@ def validate_changes(changes: dict[str, Any], models: list[dict[str, Any]] | Non
     if models is not None:
         capabilities = {m["name"]: set(m.get("capabilities", [])) for m in models}
         for key, needed in (("llm_model", "completion"), ("vlm_model", "vision")):
-            if key not in clean:
-                continue
+            if key not in clean or (key == "llm_model" and not llm_in_models):
+                continue  # the text model lives on another provider whose catalogue we cannot list
             if clean[key] not in capabilities:
                 raise ValueError(f"{key}: model {clean[key]} is not installed in Ollama")
             if needed not in capabilities[clean[key]]:

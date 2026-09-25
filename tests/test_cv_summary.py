@@ -66,3 +66,10 @@ def test_evaluation_api_exposes_the_second_look_results(tmp_path):
     (tmp_path / "second_look.json").write_text(json.dumps({"cross_validation_recordings": {"weak_events": 9}}))
     assert load_evaluation(tmp_path)["second_look"]["cross_validation_recordings"]["weak_events"] == 9
     assert load_evaluation(tmp_path / "missing")["second_look"] is None
+
+
+def test_evaluation_api_exposes_the_fragment_merge_results(tmp_path):
+    from praxiproof.evaluation import load_evaluation
+
+    (tmp_path / "fragment_merge.json").write_text(json.dumps({"tolerance": 1.2}))
+    assert load_evaluation(tmp_path)["fragment_merge"] == {"tolerance": 1.2}

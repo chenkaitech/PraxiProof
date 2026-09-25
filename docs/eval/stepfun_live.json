@@ -1,0 +1,54 @@
+{
+  "provider": {
+    "llm_provider": "openai",
+    "llm_model": "step-3.5-flash",
+    "vlm_model": "gemma4:31b",
+    "openai_base_url": "https://api.stepfun.com/step_plan/v1",
+    "data_flow": {
+      "text": "api.stepfun.com",
+      "frames": "local"
+    }
+  },
+  "compile": {
+    "manual": "MAN-011",
+    "status": "ready",
+    "error": null,
+    "rules": 18,
+    "seconds": 120.2
+  },
+  "agent": {
+    "en": {
+      "seconds": 10.7,
+      "compliance_agent_tool_calls": [
+        "get_verification_report",
+        "run_root_cause_analysis"
+      ],
+      "delegated_to_rca": true,
+      "rca_tool_calls": [
+        "get_verdict_detail",
+        "get_raw_observation",
+        "get_alignment"
+      ],
+      "rca_category": "GENUINE_VIOLATION",
+      "answer_chars": 737,
+      "answer": "The run failed due to a single rule violation: **R-003 — \"Install the fans before installing the power supplies.\"**\n\n**Root cause:** The technician installed the power supplies before the fans, violating the required ordering. The first power supply insertion (EV-VID-011-O001, 00:12.9) occurred ~10 seconds before the first fan insertion (EV-VID-011-O003, 00:23.1), yielding a measured gap of **−10."
+    },
+    "zh": {
+      "seconds": 11.4,
+      "compliance_agent_tool_calls": [
+        "get_verification_report",
+        "run_root_cause_analysis"
+      ],
+      "delegated_to_rca": true,
+      "rca_tool_calls": [
+        "get_verdict_detail",
+        "get_raw_observation",
+        "get_alignment"
+      ],
+      "rca_category": "GENUINE_VIOLATION",
+      "answer_chars": 696,
+      "answer": "## 验证结果概述\n\n本次验证 **V-029** 共有 7 条规则，其中 **6 条通过 (PASS)**，**1 条违规 (VIOLATION)**，整体未通过。\n\n---\n\n## 未通过规则及根因\n\n### 规则 R-003：风扇必须在电源之前安装\n\n| 项目 | 内容 |\n|------|------|\n| **规则状态** | ❌ **VIOLATION（违规）** |\n| **手册依据** | MAN-004 §Requirements：<br>“- Install the fans before installing the power supplies.”（安装风扇前不得安装电源） |\n| **实测时间差** | **-10.23 秒**（电源安装先于风扇） |\n| **视频证据** | 电源安装：`00:12.9–00:18.4`（EV-VID-011-O001）<br>"
+    }
+  },
+  "run": "V-029"
+}

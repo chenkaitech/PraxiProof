@@ -118,6 +118,7 @@ def load_evaluation(eval_dir: Path | None = None) -> dict[str, Any]:
         "baseline": _baseline(eval_dir),
         "cross_validation": _load(eval_dir, "cv_summary"),
         "second_look": _load(eval_dir, "second_look"),
+        "fragment_merge": _load(eval_dir, "fragment_merge"),
         "stepfun": _load(eval_dir, "stepfun_compile_benchmark"),
         "agents": _agents(),
     }

@@ -16,6 +16,7 @@ class ReferenceExample:
     description: str
     images: tuple[bytes, ...]
     sources: tuple[str, ...] = ()
+    typical_seconds: float | None = None  # how long one performance of this action usually takes
 
 
 def load_references(directory: Path) -> list[ReferenceExample]:
@@ -26,6 +27,7 @@ def load_references(directory: Path) -> list[ReferenceExample]:
             description=entry["description"],
             images=tuple((directory / image["file"]).read_bytes() for image in entry["images"]),
             sources=tuple(image.get("source", image["file"]) for image in entry["images"]),
+            typical_seconds=entry.get("typical_seconds"),
         )
         for entry in index["examples"]
     ]
@@ -40,7 +42,10 @@ def save_references(directory: Path, examples: list[ReferenceExample], note: str
             name = f"{example.label}_{i + 1}.jpg"
             (directory / name).write_bytes(data)
             images.append({"file": name, "source": source})
-        entries.append({"label": example.label, "description": example.description, "images": images})
+        entry = {"label": example.label, "description": example.description, "images": images}
+        if example.typical_seconds is not None:
+            entry["typical_seconds"] = example.typical_seconds
+        entries.append(entry)
     (directory / INDEX).write_text(json.dumps({"note": note, "examples": entries}, indent=2), encoding="utf-8")
 
 

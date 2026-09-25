@@ -10,6 +10,7 @@ from praxiproof.ir.observation import Observation
 from praxiproof.ir.requirement import EventDef
 from praxiproof.llm import LLM
 from praxiproof.verifier.aligner import Matcher
+from praxiproof.video.fragments import DEFAULT_TOLERANCE, merge_fragments
 from praxiproof.video.frames import FFmpegError, frame_at, probe
 from praxiproof.video.normalizer import RawSegment, normalize
 from praxiproof.video.references import ReferenceExample, assign_references
@@ -84,6 +85,7 @@ class DDMVLMBackend:
         second_look_below: float | None = None,
         second_look_frames: int = 12,
         second_look_width: int = 896,
+        merge_tolerance: float | None = DEFAULT_TOLERANCE,
     ):
         self.llm = llm
         self.model = model
@@ -100,6 +102,7 @@ class DDMVLMBackend:
         self.second_look_below = second_look_below
         self.second_look_frames = second_look_frames
         self.second_look_width = second_look_width
+        self.merge_tolerance = merge_tolerance
 
     def observe(
         self, path: Path, source_id: str, vocabulary: list[EventDef], procedure: str
@@ -116,6 +119,9 @@ class DDMVLMBackend:
                 segments.append(
                     RawSegment(label=label, description=description, start=start, end=end, confidence=confidence, uncertainty=self.boundary_uncertainty)
                 )
+        typical = {target: r.typical_seconds for target, r in references if target and r.typical_seconds}
+        if self.merge_tolerance and typical:
+            segments = merge_fragments(segments, typical, self.merge_tolerance)
         if self.second_look_below is not None:
             segments = [self._second_look(path, s, vocabulary, procedure, references) if s.confidence < self.second_look_below else s for s in segments]
         model = f"ddm-net + {self.model}" + (f" + {sum(len(r.images) for _, r in references)} reference images" if references else "")

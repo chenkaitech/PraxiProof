@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Any
 
@@ -9,7 +10,7 @@ _ORDERING = {ConstraintType.BEFORE: 1, ConstraintType.PRECONDITION: 1, Constrain
 from praxiproof.document.extract import Block, ExtractedDocument
 from praxiproof.ir.evidence import Evidence
 from praxiproof.ir.requirement import EventDef, Requirement, RequirementSet
-from praxiproof.llm import LLM
+from praxiproof.llm import LLM, LLMError
 
 _NULLABLE_STRING = {"type": ["string", "null"]}
 
@@ -54,6 +55,12 @@ OUTPUT_SCHEMA: dict[str, Any] = {
         },
     },
     "required": ["procedure", "sequence", "events", "requirements"],
+}
+
+REPAIR_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"requirements": OUTPUT_SCHEMA["properties"]["requirements"]},
+    "required": ["requirements"],
 }
 
 SYSTEM_PROMPT = f"""You compile maintenance and operating procedures into executable constraints that a
@@ -106,6 +113,7 @@ class CompileResult(BaseModel):
     evidence: list[Evidence]
     rejected: list[RejectedItem]
     blocks_used: int
+    repaired: int = 0  # rules the model fixed itself after the validator rejected them
 
 
 def select_blocks(doc: ExtractedDocument, procedure: str | None, max_chars: int = 20000) -> list[Block]:
@@ -157,15 +165,53 @@ def compile_requirements(
     if not blocks:
         raise ValueError("no manual text matched the requested procedure")
     focus = f'Compile only the procedure "{procedure}".' if procedure else "Compile the main procedure in this text."
-    raw = llm.chat_json(
-        model,
-        [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"{focus}\n\nManual text:\n{_render(blocks)}"},
-        ],
-        OUTPUT_SCHEMA,
-    )
-    return build_requirement_set(doc, raw, {b.index for b in blocks}, model)
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"{focus}\n\nManual text:\n{_render(blocks)}"},
+    ]
+    raw = llm.chat_json(model, messages, OUTPUT_SCHEMA)
+    allowed = {b.index for b in blocks}
+    result = build_requirement_set(doc, raw, allowed, model)
+    return _repair(doc, llm, model, messages, raw, allowed, result)
+
+
+def _repair(
+    doc: ExtractedDocument, llm: LLM, model: str, messages: list[dict[str, Any]], raw: dict[str, Any], allowed: set[int], first: CompileResult
+) -> CompileResult:
+    """Give the model one chance to fix the rules the validator rejected, quoting the exact error for each.
+
+    Models slip on the strict constraint format (a field that must be null left filled in, a rule citing a block
+    that does not exist) although they know what the rule should say. Only the rejected rules are re-asked and
+    everything still goes through the same validator, so a repair can add rules but never bypass a check. If the
+    call fails the first result stands.
+    """
+    broken = [r for r in first.rejected if "constraint" in r.item]  # rules; malformed event definitions are not repaired
+    if not broken:
+        return first
+    listing = "\n".join(f"{i}. error: {r.error}\n   rule: {json.dumps(r.item, ensure_ascii=False)}" for i, r in enumerate(broken, 1))
+    followup = messages + [
+        {"role": "assistant", "content": json.dumps(raw, ensure_ascii=False)},
+        {
+            "role": "user",
+            "content": (
+                "The validator rejected these rules:\n" + listing + "\n\nReturn corrected versions of only these rules, "
+                "following the constraint format exactly (fields a type does not use must be null; cite only block numbers "
+                "that exist in the text; use only event labels you defined). Leave out any rule that cannot be expressed "
+                "correctly instead of guessing."
+            ),
+        },
+    ]
+    try:
+        fixed = llm.chat_json(model, followup, REPAIR_SCHEMA)
+    except LLMError:
+        return first
+    candidates = fixed.get("requirements") or []
+    bad = [r.item for r in first.rejected]
+    kept = [item for item in raw.get("requirements", []) if item not in bad]
+    second = build_requirement_set(doc, raw | {"requirements": kept + candidates}, allowed, model)
+    if len(second.requirement_set.requirements) <= len(first.requirement_set.requirements):
+        return first
+    return second.model_copy(update={"repaired": len(second.requirement_set.requirements) - len(first.requirement_set.requirements)})
 
 
 def build_requirement_set(doc: ExtractedDocument, raw: dict[str, Any], allowed_blocks: set[int], model: str | None) -> CompileResult:

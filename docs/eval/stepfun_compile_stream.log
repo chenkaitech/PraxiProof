@@ -1,0 +1,10 @@
+provider=openai model=step-3.5-flash
+run 1: 16 rules, 0 rejected, 0 repaired (151s)
+run 2: 15 rules, 0 rejected, 0 repaired (77s)
+run 3: 15 rules, 0 rejected, 0 repaired (114s)
+run 4: 15 rules, 0 rejected, 0 repaired (159s)
+run 5: LLMError: response still streaming after 480s; giving up (limit 480s) (480s)
+run 6: 15 rules, 0 rejected, 15 repaired (125s)
+run 7: 15 rules, 0 rejected, 0 repaired (135s)
+run 8: 17 rules, 0 rejected, 9 repaired (149s)
+ALLDONE

@@ -1,11 +1,13 @@
 import hashlib
+import hmac
 import json
 import os
-import shutil
 import tempfile
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
@@ -15,7 +17,7 @@ from pydantic import BaseModel
 from praxiproof import __version__
 from praxiproof.config import Settings, get_settings, load_overrides
 from praxiproof.evaluation import load_evaluation
-from praxiproof.llm import LLM, LLMError, build_llm
+from praxiproof.llm import LLM, LLMError, build_llm, build_vlm
 from praxiproof.runtime.compliance_agent import ComplianceAgent
 from praxiproof.runtime.rca_agent import RCAAgent
 from praxiproof.service import PraxiProof
@@ -36,6 +38,12 @@ def _versioned_index() -> str:
 
 
 DEFAULT_DEMO_DIR = Path(__file__).resolve().parents[3] / "demo"
+MANUAL_SUFFIXES = {".pdf", ".html", ".htm", ".md", ".markdown", ".txt"}
+VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm"}
+MANUAL_MAX_MB = 100
+CHUNK = 1024 * 1024
+TOKEN_COOKIE = "pp_token"
+OPEN_PATHS = ("/health", "/api/auth")
 
 
 class RunRequest(BaseModel):
@@ -70,20 +78,47 @@ class AskRequest(BaseModel):
 def create_app(
     settings: Settings | None = None,
     llm: LLM | None = None,
+    vlm: LLM | None = None,
     backend_factory: Callable[[], VideoBackend] | None = None,
     demo_dir: Path | None = None,
     eval_dir: Path | None = None,
 ) -> FastAPI:
     settings = load_overrides(settings or get_settings())
     llm = llm or build_llm(settings)
-    core = PraxiProof(settings, llm, backend_factory=backend_factory)
+    core = PraxiProof(settings, llm, backend_factory=backend_factory, vlm=vlm or build_vlm(settings, llm))
     agent = ComplianceAgent(core)
     demo_dir = demo_dir or Path(os.environ.get("PRAXIPROOF_DEMO_DIR", DEFAULT_DEMO_DIR))
     uploads = settings.data_dir / "uploads"
     uploads.mkdir(parents=True, exist_ok=True)
+    core.recover_interrupted()
+    core.prune_uploads()
+    jobs = threading.BoundedSemaphore(settings.max_concurrent_jobs)
 
     app = FastAPI(title="PraxiProof", version=__version__)
     app.state.core = core
+
+    def _job(fn: Callable[[str], None], record_id: str) -> None:
+        # Model calls share one GPU; extra jobs wait here (their records stay "queued") instead of thrashing it.
+        with jobs:
+            fn(record_id)
+
+    def _token_ok(request: Request) -> bool:
+        expected = core.settings.api_token
+        if not expected:
+            return True
+        header = request.headers.get("authorization", "")
+        given = header[7:] if header.lower().startswith("bearer ") else request.headers.get("x-api-token") or request.cookies.get(TOKEN_COOKIE, "")
+        return hmac.compare_digest(given.encode(), expected.encode())
+
+    @app.middleware("http")
+    async def _require_token(request: Request, call_next):
+        if request.url.path.startswith("/api/") and request.url.path not in OPEN_PATHS and not _token_ok(request):
+            return JSONResponse({"detail": "a valid API token is required"}, status_code=401)
+        return await call_next(request)
+
+    @app.get("/api/auth")
+    def auth_status(request: Request) -> dict[str, Any]:
+        return {"required": bool(core.settings.api_token), "ok": _token_ok(request)}
 
     @app.middleware("http")
     async def _revalidate_ui(request: Request, call_next):
@@ -104,28 +139,58 @@ def create_app(
     async def _bad_media(_: Request, exc: FFmpegError) -> JSONResponse:
         return JSONResponse({"detail": str(exc)}, status_code=400)
 
-    def _save(upload: UploadFile) -> Path:
-        fd, name = tempfile.mkstemp(dir=uploads, suffix=Path(upload.filename or "").suffix)
-        with os.fdopen(fd, "wb") as out:
-            shutil.copyfileobj(upload.file, out)
+    def _suffix(upload: UploadFile, allowed: set[str]) -> str:
+        suffix = Path(upload.filename or "").suffix.lower()
+        if suffix not in allowed:
+            raise ValueError(f"unsupported file type {suffix or '(none)'}; allowed: {', '.join(sorted(allowed))}")
+        return suffix
+
+    def _save(upload: UploadFile, allowed: set[str], limit_mb: int) -> Path:
+        suffix = _suffix(upload, allowed)
+        limit = limit_mb * 1024 * 1024
+        fd, name = tempfile.mkstemp(dir=uploads, suffix=suffix)
+        written = 0
+        try:
+            with os.fdopen(fd, "wb") as out:
+                while chunk := upload.file.read(CHUNK):
+                    written += len(chunk)
+                    if written > limit:
+                        raise HTTPException(status_code=413, detail=f"file is larger than the {limit_mb} MB limit")
+                    out.write(chunk)
+        except BaseException:
+            Path(name).unlink(missing_ok=True)
+            raise
         return Path(name)
 
+    def _save_manual(upload: UploadFile) -> Path:
+        return _save(upload, MANUAL_SUFFIXES, min(MANUAL_MAX_MB, core.settings.max_upload_mb))
+
+    def _save_video(upload: UploadFile) -> Path:
+        return _save(upload, VIDEO_SUFFIXES, core.settings.max_upload_mb)
+
     def _models() -> list[dict[str, Any]] | None:
-        lister = getattr(llm, "models", None)
+        # The catalogue behind the model pickers is the one that serves the frames: Ollama, unless everything is remote.
+        lister = getattr(core.vlm, "models", None)
         return lister() if lister else None
 
     @app.get("/health")
     def health() -> dict[str, Any]:
         settings = core.settings
-        wanted = {"llm": settings.llm_model, "vlm": settings.vlm_model}
-        ping = getattr(llm, "ping", None)
-        try:
-            available = set(ping()) if ping else set(wanted.values())
-            models = {k: any(m == v or m.split(":")[0] == v for m in available) for k, v in wanted.items()}
-            ollama = "ok"
-        except LLMError as exc:
-            models, ollama = {k: False for k in wanted}, str(exc)
-        return {"status": "ok", "version": __version__, "ollama": ollama, "models": models, "video_backend": settings.video_backend}
+        state, models = "ok", {}
+        for role, client, name in (("llm", llm, settings.llm_model), ("vlm", core.vlm, settings.vlm_model)):
+            ping = getattr(client, "ping", None)
+            try:
+                available = set(ping()) if ping else {name}  # a hosted API has no catalogue to check against
+                models[role] = any(m == name or m.split(":")[0] == name for m in available)
+            except LLMError as exc:
+                models[role], state = False, str(exc)
+        return {"status": "ok", "version": __version__, "ollama": state, "models": models, "video_backend": settings.video_backend}
+
+    def _data_flow() -> dict[str, str]:
+        s = core.settings
+        remote = urlparse(s.openai_base_url or "").netloc or "remote API"
+        text = remote if s.llm_provider == "openai" else "local"
+        return {"text": text, "frames": text if core.vlm is llm else "local"}
 
     def _settings_view() -> dict[str, Any]:
         s = core.settings
@@ -143,6 +208,7 @@ def create_app(
             "ollama_url": s.ollama_url,
             "llm_provider": s.llm_provider,
             "openai_base_url": s.openai_base_url,
+            "data_flow": _data_flow(),
         }
 
     @app.get("/api/settings")
@@ -175,8 +241,8 @@ def create_app(
     def upload_manual(
         background: BackgroundTasks, file: UploadFile = File(...), procedure: str | None = Form(None)
     ) -> dict[str, Any]:
-        record = core.add_manual(_save(file), file.filename or "manual", procedure or None)
-        background.add_task(core.process_manual, record["id"])
+        record = core.add_manual(_save_manual(file), file.filename or "manual", procedure or None)
+        background.add_task(_job, core.process_manual, record["id"])
         return record
 
     @app.get("/api/manuals")
@@ -193,12 +259,12 @@ def create_app(
     @app.post("/api/manuals/{manual_id}/recompile", status_code=202)
     def recompile_manual(manual_id: str, background: BackgroundTasks) -> dict[str, Any]:
         record = core.store.update("manuals", manual_id, status="queued", error=None)
-        background.add_task(core.process_manual, manual_id)
+        background.add_task(_job, core.process_manual, manual_id)
         return record
 
     @app.post("/api/videos", status_code=201)
     def upload_video(file: UploadFile = File(...), note: str | None = Form(None)) -> dict[str, Any]:
-        path = _save(file)
+        path = _save_video(file)
         try:
             return core.add_video(path, file.filename or "video.mp4", note)
         except FFmpegError:
@@ -238,7 +304,7 @@ def create_app(
         if body.demo_observation:
             observation, label = _demo_observation(body.demo_observation)
         record = core.create_run(body.manual_id, body.video_id, observation, label)
-        background.add_task(core.process_run, record["id"])
+        background.add_task(_job, core.process_run, record["id"])
         return record
 
     @app.post("/api/pipelines", status_code=202)
@@ -257,21 +323,26 @@ def create_app(
         if sum(bool(x) for x in (video, video_id, demo_observation)) != 1:
             raise ValueError("provide exactly one of a video file, video_id, or demo_observation")
         observation, label = _demo_observation(demo_observation) if demo_observation else (None, None)
+        # Reject a bad file before anything is stored, so a rejected request leaves no half-created records.
+        if manual is not None:
+            _suffix(manual, MANUAL_SUFFIXES)
+        if video is not None:
+            _suffix(video, VIDEO_SUFFIXES)
         if manual_id:
             core.store.get("manuals", manual_id)
         if video_id:
             core.store.get("videos", video_id)
         if video is not None:
-            path = _save(video)
+            path = _save_video(video)
             try:
                 video_id = core.add_video(path, video.filename or "video.mp4", video_note)["id"]
             except FFmpegError:
                 path.unlink(missing_ok=True)
                 raise
         if manual is not None:
-            manual_id = core.add_manual(_save(manual), manual.filename or "manual", procedure or None)["id"]
+            manual_id = core.add_manual(_save_manual(manual), manual.filename or "manual", procedure or None)["id"]
         record = core.create_pipeline(manual_id, video_id, observation, label)
-        background.add_task(core.process_pipeline, record["id"])
+        background.add_task(_job, core.process_pipeline, record["id"])
         return record
 
     @app.get("/api/pipelines")

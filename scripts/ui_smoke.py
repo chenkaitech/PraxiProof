@@ -58,8 +58,8 @@ def main() -> int:
             else:
                 page.wait_for_timeout(1500)
             check_text(view)
-            if view in ("dashboard", "runs", "evaluation"):
-                page.screenshot(path=str(args.out / f"{view}.png"), full_page=(view == "evaluation"))
+            if view in ("dashboard", "runs", "evaluation", "settings"):
+                page.screenshot(path=str(args.out / f"{view}.png"), full_page=(view in ("evaluation", "settings")))
             print(f"ok  {view}")
 
         page.goto(f"{args.base}/#evaluation")

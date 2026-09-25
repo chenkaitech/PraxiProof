@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import shutil
+import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -55,17 +56,19 @@ class PraxiProof:
         llm: LLM,
         store: Store | None = None,
         backend_factory: Callable[[], VideoBackend] | None = None,
+        vlm: LLM | None = None,
     ):
         self.settings = settings
         self.llm = llm
+        self.vlm = vlm or llm  # sees the video frames; may be a different provider than the text model
         self.data_dir = settings.data_dir
         for sub in ("manuals", "videos", "skills", "frames"):
             (self.data_dir / sub).mkdir(parents=True, exist_ok=True)
         self.store = store or Store(self.data_dir / "praxiproof.db")
-        self._backend_factory = backend_factory or (lambda: get_backend(self.settings, self.llm))
+        self._backend_factory = backend_factory or (lambda: get_backend(self.settings, self.llm, self.vlm))
 
     def update_settings(self, changes: dict[str, Any], models: list[dict[str, Any]] | None) -> Settings:
-        clean = validate_changes(changes, models)
+        clean = validate_changes(changes, models, llm_in_models=self.settings.llm_provider == "ollama")
         updated = replace(self.settings, **clean)
         if updated.video_backend == "nvidia_sop" and not updated.sop_bp_url:
             raise ValueError("sop_bp_url is required for the nvidia_sop video backend")
@@ -74,6 +77,27 @@ class PraxiProof:
         save_overrides(updated)
         self.settings = updated
         return updated
+
+    def recover_interrupted(self) -> int:
+        """Jobs run in this process, so anything still queued or processing after a restart will never finish."""
+        fixed = 0
+        for table in ("manuals", "runs", "pipelines"):
+            for record in self.store.list(table, limit=1_000_000):
+                if record.get("status") in ("queued", "processing"):
+                    self.store.update(table, record["id"], status="failed", stage=None, error="interrupted by a service restart; start it again")
+                    fixed += 1
+        if fixed:
+            log.warning("marked %d interrupted job(s) as failed after restart", fixed)
+        return fixed
+
+    def prune_uploads(self, max_age_seconds: float = 3600) -> int:
+        """Accepted uploads are moved into manuals/ or videos/; whatever is left here belongs to an aborted request."""
+        uploads, cutoff, removed = self.data_dir / "uploads", time.time() - max_age_seconds, 0
+        for path in uploads.glob("*") if uploads.is_dir() else []:
+            if path.is_file() and path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+                removed += 1
+        return removed
 
     def add_manual(self, upload: Path, filename: str, procedure: str | None) -> dict[str, Any]:
         record = self.store.create(
@@ -96,6 +120,12 @@ class PraxiProof:
                 # A run against zero rules would vacuously report PASS — never let that look like a verification.
                 rejected = f" ({len(result.rejected)} candidate rule(s) were rejected as invalid)" if result.rejected else ""
                 raise ValueError(f"no verifiable rules could be extracted from this manual{rejected}; try another model or recompile")
+            if len(result.rejected) > len(rs.requirements):
+                # Verifying against the few rules that survived would let almost anything pass, so this is not "ready".
+                raise ValueError(
+                    f"only {len(rs.requirements)} of {len(rs.requirements) + len(result.rejected)} candidate rules were valid "
+                    f"(most were rejected: {result.rejected[0].error[:120]}); recompile or try another model"
+                )
             self.store.update(
                 "manuals",
                 manual_id,
@@ -103,6 +133,7 @@ class PraxiProof:
                 procedure=rs.procedure,
                 requirement_set=rs.model_dump(mode="json"),
                 rejected=[r.model_dump() for r in result.rejected],
+                repaired=result.repaired,
                 blocks_used=result.blocks_used,
                 counts=_manual_counts(rs),
             )

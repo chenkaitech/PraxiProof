@@ -1,5 +1,6 @@
 import json
 import re
+import statistics
 import subprocess
 import tempfile
 import time
@@ -159,7 +160,11 @@ def build_references(
             at = probe(path).duration * position
             images.append(frame_at(path, at))
             sources.append(f"{video} action {action} at {at:.1f}s into the chunk")
-        examples.append(ReferenceExample(label=label, description=description, images=tuple(images), sources=tuple(sources)))
+        durations = [probe(path).duration for video in videos for _, action, path in chunks[video] if action in actions]
+        typical = round(statistics.median(durations), 2) if durations else None
+        examples.append(
+            ReferenceExample(label=label, description=description, images=tuple(images), sources=tuple(sources), typical_seconds=typical)
+        )
     note = f"Frames from the NVIDIA sop-server-fan-installation-data training recordings {', '.join(videos)}."
     save_references(out, examples, note)
     return examples

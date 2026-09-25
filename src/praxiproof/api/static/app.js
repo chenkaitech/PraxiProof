@@ -26,8 +26,21 @@ const ICON = {
   stageSkill: '<svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>',
 };
 
-async function api(path, options = {}) {
+let tokenPrompt = null;
+// The server can require an API token (PRAXIPROOF_API_TOKEN). It is kept in a cookie so <video> and <img> requests carry it too.
+function askForToken() {
+  tokenPrompt ??= Promise.resolve().then(() => {
+    const value = (window.prompt(t("auth.prompt")) || "").trim();
+    tokenPrompt = null;
+    if (value) document.cookie = `pp_token=${value}; path=/; SameSite=Strict`;
+    return Boolean(value);
+  });
+  return tokenPrompt;
+}
+
+async function api(path, options = {}, retried = false) {
   const response = await fetch(path, options);
+  if (response.status === 401 && !retried && (await askForToken())) return api(path, options, true);
   if (!response.ok) {
     let detail = response.statusText;
     try {
@@ -634,6 +647,17 @@ function cvSection(cv) {
     <p class="chips">${folds}</p><p class="muted small">${esc(t("eval.cv_note"))}</p></section>`;
 }
 
+function fragmentMergeSection(fm) {
+  const b = fm.before.all, a = fm.after.all, d = fm.paired_f1_difference;
+  return `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.fm")}</h3><p>${t("eval.fm_sub")}</p></div>
+    <div class="tiles">
+      <div class="tile"><b>${b.precision} → ${a.precision}</b><span>${esc(t("eval.fm.precision"))}</span></div>
+      <div class="tile"><b>${b.recall} → ${a.recall}</b><span>${esc(t("eval.fm.recall"))}</span></div>
+      <div class="tile"><b>${b.f1} → ${a.f1}</b><span>${esc(t("eval.fm.f1", { lo: a.f1_ci95[0], hi: a.f1_ci95[1] }))}</span></div>
+      <div class="tile"><b>+${d.difference}</b><span>${esc(t("eval.fm.paired", { lo: d.ci95[0], hi: d.ci95[1] }))}</span></div>
+    </div><p class="muted small">${esc(t("eval.fm_note"))}</p></section>`;
+}
+
 function secondLookSection(sl) {
   const a = sl.cross_validation_recordings, e = sl.edited_recordings;
   const violating = e.rows.filter((r) => r.truth !== "Compliant").length;
@@ -676,6 +700,7 @@ async function renderEvaluation() {
       <table class="eval-table"><thead><tr><th>${t("eval.col_video")}</th><th>${t("eval.col_truth")}</th><th>${t("eval.col_vlm")}</th><th>PraxiProof</th></tr></thead><tbody>
       ${b.videos.map((v) => `<tr><td>${esc(v.id)}</td><td>${esc(labelText(v.truth))}</td><td class="chips">${v.baseline.map((l) => baselineChip(l, v.truth)).join("")}</td><td>${v.praxiproof === v.truth ? `<span class="chip ok">${esc(labelText(v.praxiproof))}</span>` : `<span class="chip warn">${esc(labelText(v.praxiproof))}</span>`}</td></tr>`).join("")}
       </tbody></table><p class="muted small">${esc(t("eval.baseline_note"))}</p></section>` : ""}
+    ${d.fragment_merge ? fragmentMergeSection(d.fragment_merge) : ""}
     ${d.second_look ? secondLookSection(d.second_look) : ""}
     ${d.stepfun ? `<section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
       <table class="eval-table"><thead><tr><th>${t("eval.col_model")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_rules")}</th></tr></thead><tbody>
@@ -699,6 +724,7 @@ async function renderSettings() {
     const extra = names.has(current) ? "" : `<option value="${esc(current)}" selected>${esc(current)}</option>`;
     return extra + fits.map((m) => `<option value="${esc(m.name)}" ${m.name === current ? "selected" : ""}>${esc(m.name)}${describe(m) ? ` — ${esc(describe(m))}` : ""}</option>`).join("");
   };
+  const place = (where) => (where === "local" ? t("settings.data_flow_local") : where);
   const ok = (b) => (b ? `<span class="badge pass">${t("settings.available")}</span>` : `<span class="badge violation">${t("settings.missing")}</span>`);
   view.innerHTML = `<div class="page-head"><div><h1>${t("settings.title")}</h1><p>${t("settings.subtitle")}</p></div></div>
     <form class="card settings-form" id="settings-form">
@@ -723,6 +749,7 @@ async function renderSettings() {
     <section class="card" style="margin-top:20px"><div class="card-head"><h3>${t("settings.system")}</h3></div><div class="kv">
       <div>${t("settings.language")}</div><div><button class="btn small ${LANG === "en" ? "primary" : "ghost"}" data-lang="en">English</button> <button class="btn small ${LANG === "zh" ? "primary" : "ghost"}" data-lang="zh">中文</button></div>
       <div>Ollama</div><div>${esc(s.ollama_url)} — ${h.ollama === "ok" ? `<span class="badge pass">${t("settings.reachable")}</span>` : `<span class="badge violation">${esc(h.ollama)}</span>`}</div>
+      <div>${t("settings.data_flow")}</div><div>${esc(t("settings.data_flow_text", { where: place(s.data_flow.text) }))}<br>${esc(t("settings.data_flow_frames", { where: place(s.data_flow.frames) }))}</div>
       <div>${t("settings.version")}</div><div>${esc(h.version)}</div>
     </div></section>`;
   const form = $("#settings-form");

@@ -199,3 +199,139 @@ def test_manual_that_compiles_to_zero_rules_fails_instead_of_looking_ready(setti
         record = c.get(f"/api/manuals/{upload.json()['id']}").json()
         assert record["status"] == "failed"
         assert "no verifiable rules" in record["error"]
+
+
+def test_manual_where_most_candidate_rules_were_invalid_fails_instead_of_looking_ready(settings):
+    def rule(statement, event):
+        return {"statement": statement, "category": "procedure", "severity": "major", "observable": True, "source_blocks": [1],
+                "constraint": {"type": "MUST_HAVE", "event": event, "a": None, "b": None, "seconds": None, "min_count": None}}
+
+    # one rule uses a defined event, three cite events the model never defined (what a truncated answer looks like)
+    raw = {"procedure": "P", "sequence": ["fan_removed"], "events": [{"label": "fan_removed", "description": "d"}],
+           "requirements": [rule("ok", "fan_removed"), rule("a", "x_one"), rule("b", "x_two"), rule("c", "x_three")]}
+    with TestClient(create_app(settings, llm=FakeLLM(json_handler=lambda *_: raw), backend_factory=FakeBackend, demo_dir=DEMO_DIR)) as c:
+        html = (DEMO_DIR / "manuals" / "dgx-h100-front-fan-replacement.html").read_bytes()
+        upload = c.post("/api/manuals", files={"file": ("fan.html", html, "text/html")}, data={"procedure": "Front Fan Module Replacement"})
+        record = c.get(f"/api/manuals/{upload.json()['id']}").json()
+        assert record["status"] == "failed" and "only 1 of 4 candidate rules were valid" in record["error"]
+
+
+def _client_with(settings, reference, **changes):
+    from dataclasses import replace
+
+    fake = FakeLLM(json_handler=lambda *_: reference_as_llm_output(reference))
+    return TestClient(create_app(replace(settings, **changes), llm=fake, backend_factory=FakeBackend, demo_dir=DEMO_DIR))
+
+
+def test_manual_upload_rejects_unsupported_types_and_oversize_files(client):
+    r = client.post("/api/manuals", files={"file": ("evil.exe", b"MZ", "application/octet-stream")})
+    assert r.status_code == 400 and "unsupported file type .exe" in r.json()["detail"]
+    r = client.post("/api/videos", files={"file": ("notes.txt", b"hi", "text/plain")})
+    assert r.status_code == 400 and ".mp4" in r.json()["detail"]
+    assert client.get("/api/manuals").json() == [] and client.get("/api/videos").json() == []
+
+
+def test_upload_larger_than_the_limit_is_refused_and_leaves_nothing_behind(settings, reference):
+    with _client_with(settings, reference, max_upload_mb=1) as c:
+        r = c.post("/api/videos", files={"file": ("big.mp4", b"0" * (1024 * 1024 + 1), "video/mp4")})
+        assert r.status_code == 413 and "1 MB limit" in r.json()["detail"]
+        assert list((settings.data_dir / "uploads").iterdir()) == []
+
+
+def test_pipeline_with_a_bad_manual_stores_nothing(client):
+    r = client.post(
+        "/api/pipelines",
+        files={"manual": ("m.docx", b"x", "application/octet-stream"), "video": ("v.mp4", b"x", "video/mp4")},
+    )
+    assert r.status_code == 400
+    assert client.get("/api/videos").json() == [] and client.get("/api/manuals").json() == []
+
+
+def test_api_token_protects_the_api_but_not_health_or_the_ui(settings, reference):
+    with _client_with(settings, reference, api_token="s3cret") as c:
+        assert c.get("/health").status_code == 200 and c.get("/").status_code == 200
+        assert c.get("/api/auth").json() == {"required": True, "ok": False}
+        assert c.get("/api/manuals").status_code == 401
+        assert c.get("/api/manuals", headers={"Authorization": "Bearer wrong"}).status_code == 401
+        assert c.get("/api/manuals", headers={"Authorization": "Bearer s3cret"}).status_code == 200
+        assert c.get("/api/manuals", headers={"X-API-Token": "s3cret"}).status_code == 200
+        c.cookies.set("pp_token", "s3cret")  # what the browser sends for <video>/<img> requests
+        assert c.get("/api/manuals").status_code == 200 and c.get("/api/auth").json()["ok"] is True
+
+
+def test_no_token_configured_means_open_access(client):
+    assert client.get("/api/auth").json() == {"required": False, "ok": True}
+
+
+def test_jobs_interrupted_by_a_restart_are_marked_failed(settings, reference):
+    with _client_with(settings, reference) as first:
+        core = first.app.state.core
+        stuck = core.store.create("runs", {"status": "processing", "stage": "observing", "manual_id": "MAN-001", "video_id": None, "error": None})
+        queued = core.store.create("manuals", {"filename": "a.html", "status": "queued", "error": None})
+        done = core.store.create("runs", {"status": "done", "stage": None, "error": None})
+    with _client_with(settings, reference) as second:
+        core = second.app.state.core
+        assert core.store.get("runs", stuck["id"])["status"] == "failed"
+        assert "restart" in core.store.get("runs", stuck["id"])["error"]
+        assert core.store.get("manuals", queued["id"])["status"] == "failed"
+        assert core.store.get("runs", done["id"])["status"] == "done"
+
+
+def test_stale_orphan_uploads_are_pruned_at_startup(settings, reference):
+    import os
+    import time
+
+    uploads = settings.data_dir / "uploads"
+    uploads.mkdir(parents=True)
+    old, fresh = uploads / "old.mp4", uploads / "fresh.mp4"
+    old.write_bytes(b"x"), fresh.write_bytes(b"x")
+    os.utime(old, (time.time() - 7200, time.time() - 7200))
+    with _client_with(settings, reference):
+        assert not old.exists() and fresh.exists()
+
+
+def test_positive_int_environment_settings_are_validated(monkeypatch):
+    from praxiproof.config import get_settings
+
+    monkeypatch.setenv("PRAXIPROOF_MAX_UPLOAD_MB", "0")
+    with pytest.raises(ValueError, match="PRAXIPROOF_MAX_UPLOAD_MB"):
+        get_settings()
+    monkeypatch.setenv("PRAXIPROOF_MAX_UPLOAD_MB", "512")
+    monkeypatch.setenv("PRAXIPROOF_API_TOKEN", "tok")
+    assert (get_settings().max_upload_mb, get_settings().api_token) == (512, "tok")
+
+
+def test_frames_can_stay_local_while_the_text_model_is_remote(settings, reference):
+    from dataclasses import replace
+
+    from praxiproof.llm import OllamaClient, build_vlm
+
+    remote = replace(settings, llm_provider="openai", openai_base_url="https://api.example.com/v1", vlm_provider="ollama")
+    text, local = FakeLLM(json_handler=lambda *_: reference_as_llm_output(reference)), FakeLLM()
+    client = TestClient(create_app(remote, llm=text, vlm=local, backend_factory=FakeBackend, demo_dir=DEMO_DIR))
+    assert client.app.state.core.vlm is local and client.app.state.core.llm is text
+    assert client.get("/api/settings").json()["data_flow"] == {"text": "api.example.com", "frames": "local"}
+    # the default keeps everything on the one configured provider, as before
+    same = TestClient(create_app(replace(remote, vlm_provider="same"), llm=text, backend_factory=FakeBackend, demo_dir=DEMO_DIR))
+    assert same.get("/api/settings").json()["data_flow"] == {"text": "api.example.com", "frames": "api.example.com"}
+    assert isinstance(build_vlm(remote, text), OllamaClient) and build_vlm(replace(remote, vlm_provider="same"), text) is text
+    assert build_vlm(replace(settings, vlm_provider="ollama"), text) is text  # both local already: nothing to split
+
+
+def test_backend_factory_gives_the_frame_client_to_the_video_backend(settings):
+    from praxiproof.video.backend import get_backend
+
+    text, vision = FakeLLM(), FakeLLM()
+    assert get_backend(settings, text, vision).llm is vision
+    assert get_backend(settings, text).llm is text
+
+
+def test_a_hosted_text_model_name_is_not_checked_against_the_ollama_catalogue(settings):
+    from praxiproof.config import validate_changes
+
+    catalogue = [{"name": "gemma4:31b", "capabilities": ["completion", "vision"]}]
+    assert validate_changes({"llm_model": "step-3.5-flash"}, catalogue, llm_in_models=False) == {"llm_model": "step-3.5-flash"}
+    with pytest.raises(ValueError, match="not installed"):
+        validate_changes({"vlm_model": "step-3.5-flash"}, catalogue, llm_in_models=False)  # frames still need a local vision model
+    with pytest.raises(ValueError, match="not installed"):
+        validate_changes({"llm_model": "step-3.5-flash"}, catalogue)

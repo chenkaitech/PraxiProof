@@ -16,7 +16,8 @@ class VideoBackend(Protocol):
     ) -> tuple[Observation, list[Evidence]]: ...
 
 
-def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
+def get_backend(settings: Settings, llm: LLM, vlm: LLM | None = None) -> VideoBackend:
+    vlm = vlm or llm  # `llm` is the text model (matching step names); `vlm` is the one that receives frames
     if settings.video_backend == "nvidia_sop":
         from praxiproof.video.nvidia_sop_adapter import NvidiaSOPBackend
 
@@ -34,7 +35,7 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
         runner = DDMRunner(settings.ddm_image, settings.ddm_code_dir, settings.ddm_checkpoint, settings.data_dir / "ddm_work")
         references = load_references(Path(settings.reference_dir)) if settings.reference_dir else None
         return DDMVLMBackend(
-            llm,
+            vlm,
             settings.vlm_model,
             runner,
             thinking=settings.vlm_thinking,
@@ -46,5 +47,5 @@ def get_backend(settings: Settings, llm: LLM) -> VideoBackend:
     if settings.video_backend == "local_vlm":
         from praxiproof.video.local_vlm_adapter import LocalVLMBackend
 
-        return LocalVLMBackend(llm, settings.vlm_model, thinking=settings.vlm_thinking)
+        return LocalVLMBackend(vlm, settings.vlm_model, thinking=settings.vlm_thinking)
     raise ValueError(f"unknown video backend: {settings.video_backend}")
