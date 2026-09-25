@@ -104,7 +104,7 @@ def main() -> int:
         page.evaluate("localStorage.removeItem('pp-theme')")
         phone = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2).new_page()
         phone.on("pageerror", lambda e: problems.append(f"phone pageerror: {str(e)[:150]}"))
-        for view in ("dashboard", "runs", "evaluation", "settings"):
+        for view in ("dashboard", "runs", "evaluation", "settings", "manuals", "skills", "reports", f"run/{run_id}"):
             phone.goto(f"{args.base}/#{view}")
             phone.wait_for_timeout(1800)
             overflow = phone.evaluate("document.documentElement.scrollWidth - window.innerWidth")

@@ -1,6 +1,6 @@
 {
-  "title": "Video A — compliant fan/PSU/cover installation",
-  "title_zh": "视频 A — 合规的风扇/电源/机盖安装",
+  "title": "Video A: compliant fan/PSU/cover installation",
+  "title_zh": "视频 A：合规的风扇/电源/机盖安装",
   "video_name": "cover_install_A.mp4",
   "expected": {
     "R-101": "PASS",

@@ -161,7 +161,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 input:disabled { background: var(--surface-2); color: var(--muted); }
 
 /* ---- containers ---- */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; overflow-x: auto; }
 .card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; margin-bottom: 14px; }
 .card-head h3 { font-size: 16px; flex: none; }
 .card-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; flex: 1 1 280px; }
@@ -175,6 +175,7 @@ input:disabled { background: var(--surface-2); color: var(--muted); }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
 .stack { display: flex; flex-direction: column; gap: 20px; }
+.split > *, .grid-2 > *, .grid-4 > *, .stack > * { min-width: 0; }  /* let cards shrink below their content so wide tables scroll inside the card */
 .mt { margin-top: 20px; }
 .mb { margin-bottom: 20px; }
 
@@ -232,12 +233,12 @@ a.file-row:hover { text-decoration: none; border-color: var(--line-strong); }
 
 /* ---- tables ---- */
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th { text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; padding: 8px 10px; background: var(--surface-2); white-space: nowrap; }
+th { text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; padding: 8px 10px; background: var(--surface-2); vertical-align: bottom; }
 th:first-child { border-radius: var(--r-md) 0 0 var(--r-md); }
 th:last-child { border-radius: 0 var(--r-md) var(--r-md) 0; }
 td { padding: 11px 10px; border-top: 1px solid var(--line); font-size: 13px; vertical-align: top; }
 tr:first-child > td { border-top: 0; }
-td.id, td.nowrap { white-space: nowrap; }
+td.id, td.nowrap, .nowrap { white-space: nowrap; }
 td.id { font-family: var(--mono); font-size: 12.5px; }
 tr.clickable { cursor: pointer; }
 tr.clickable:hover td, tr.clickable:focus-visible td { background: var(--surface-2); }
@@ -261,7 +262,7 @@ code { background: var(--code-bg); border-radius: 5px; padding: 1px 5px; }
 .finding h4 { margin: 0; color: var(--viol); font-size: 15px; }
 .finding.unverified h4 { color: var(--warn); }
 .finding p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; }
-.evidence-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.evidence-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; align-items: start; }
 .evidence-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; font-size: 12px; }
 .evidence-box .label { color: var(--muted); font-size: 11.5px; }
 .evidence-box b { display: block; font-size: 14px; margin: 2px 0 6px; }
@@ -278,6 +279,17 @@ code { background: var(--code-bg); border-radius: 5px; padding: 1px 5px; }
 .verdict .needed { color: var(--warn); margin: 6px 0 0; font-size: 13px; }
 .verdict-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
 .verdicts { display: flex; flex-direction: column; gap: 10px; }
+details.verdict > summary { list-style: none; cursor: pointer; position: relative; padding-right: 22px; }
+details.verdict > summary::-webkit-details-marker { display: none; }
+details.verdict > summary::after { content: ""; position: absolute; right: 2px; top: 6px; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+details.verdict[open] > summary::after { transform: rotate(-135deg); top: 10px; }
+details.verdict > summary:hover .title { color: var(--accent-text); }
+details.verdict .evidence-pair { margin-top: 12px; }
+.sticky { position: sticky; top: 76px; align-self: start; }
+@media (max-width: 1200px) { .sticky { position: static; } }
+.clip { display: inline-block; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.results { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.card-head .btn { margin-left: auto; }
 
 .run-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .counts { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -305,6 +317,7 @@ video { width: 100%; border-radius: var(--r-lg); background: #000; }
 .settings-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 13px; }
 .settings-form select, .settings-form input { border: 1px solid var(--line); border-radius: var(--r-md); padding: 9px 10px; font: inherit; font-weight: 400; }
 .settings-form small { color: var(--muted); font-weight: 400; }
+.settings-form .badge { align-self: flex-start; }
 .settings-form label.check span { display: flex; gap: 8px; align-items: center; }
 .kv { display: grid; grid-template-columns: 200px 1fr; gap: 8px 16px; }
 .kv div:nth-child(odd) { color: var(--muted); }
@@ -314,9 +327,9 @@ dialog::backdrop { background: rgba(8, 16, 31, .55); }
 dialog form { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
 dialog h2 { font-size: 18px; }
 dialog label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 13px; }
-dialog select, dialog input[type=text], dialog input[type=file] { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; font: inherit; }
+dialog select, dialog input[type=text], dialog input[type=file] { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; font: inherit; width: 100%; min-width: 0; text-overflow: ellipsis; }
 dialog .muted { margin: -6px 0 0; font-size: 13px; }
-dialog fieldset { border: 1px solid var(--line); border-radius: var(--r-md); display: flex; flex-direction: column; gap: 8px; }
+dialog fieldset { border: 1px solid var(--line); border-radius: var(--r-md); display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; }
 dialog legend { font-weight: 600; font-size: 13px; padding: 0 6px; }
 label.radio { flex-direction: row; align-items: center; font-weight: 500; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
@@ -403,7 +416,6 @@ label.radio { flex-direction: row; align-items: center; font-weight: 500; }
   .topbar .grow { display: none; }
   .search { order: 5; width: 100%; }
   #view { padding: 20px 16px 40px; }
-  .card { overflow-x: auto; }
   .kv { grid-template-columns: 1fr; gap: 2px 16px; }
   .kv div:nth-child(even) { margin-bottom: 8px; }
   .stats { flex-wrap: wrap; }

@@ -1,6 +1,6 @@
 {
-  "title": "Video C — fan bay left empty for 45 seconds",
-  "title_zh": "视频 C — 风扇槽位空置 45 秒",
+  "title": "Video C: fan bay left empty for 45 seconds",
+  "title_zh": "视频 C：风扇槽位空置 45 秒",
   "video_name": "fan_replacement_C.mp4",
   "expected": {
     "R-001": "PASS",

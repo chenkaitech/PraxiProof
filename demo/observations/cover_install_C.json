@@ -1,6 +1,6 @@
 {
-  "title": "Video C — cover forced shut without the latch clicking",
-  "title_zh": "视频 C — 机盖未听到卡扣声就被强行压下",
+  "title": "Video C: cover forced shut without the latch clicking",
+  "title_zh": "视频 C：机盖未听到卡扣声就被强行压下",
   "video_name": "cover_install_C.mp4",
   "expected": {
     "R-101": "PASS",

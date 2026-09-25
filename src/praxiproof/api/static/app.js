@@ -2,6 +2,8 @@ const $ = (sel, el = document) => el.querySelector(sel);
 const view = $("#view");
 const state = { query: "", pollTimer: null, renderToken: 0 };
 
+// Manual text is quoted as written; drop the list marker it was copied with.
+const plain = (text) => String(text ?? "").replace(/^\s*(?:[-*+]|\d+\.)\s+/, "");
 const esc = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -198,7 +200,7 @@ function findingCard(f, compact = false) {
       ${severityBadge(f.severity)}
     </div>
     <div class="evidence-pair">
-      <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "-" }))}</b>${manual ? `<q>${esc(manual.text.slice(0, compact ? 110 : 400))}</q>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "-" }))}</b>${manual ? `<q>${esc(plain(manual.text).slice(0, compact ? 110 : 400))}</q>` : ""}</div>
       <div class="evidence-box"><div class="label">${esc(t("finding.video"))}</div><b>${video ? `${fmtTime(video.start)} to ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
     </div>
   </div>`;
@@ -408,7 +410,7 @@ function evidenceLine(ids, evidence, videoId) {
     .filter(Boolean)
     .map((e) =>
       e.source_type === "document"
-        ? `<div class="evidence-box"><div class="label">${esc(t("ev.manual", { cite: e.citation }))}${e.locator.section && e.locator.section !== e.citation ? ` · ${esc(e.locator.section)}` : ""}</div><q>${esc(e.text)}</q></div>`
+        ? `<div class="evidence-box"><div class="label">${esc(t("ev.manual", { cite: e.citation }))}${e.locator.section && e.locator.section !== e.citation ? ` · ${esc(e.locator.section)}` : ""}</div><q>${esc(plain(e.text))}</q></div>`
         : `<div class="evidence-box"><div class="label">${esc(t("ev.video", { cite: e.citation, pct: Math.round(e.confidence * 100) }))}</div>${esc(e.text)}${videoId ? `<img src="/api/videos/${esc(videoId)}/frame?t=${e.locator.start.toFixed(1)}" alt="" data-seek="${e.locator.start}">` : ""}</div>`
     )
     .join("");
@@ -466,19 +468,23 @@ async function renderRun(id) {
       <button class="btn primary" id="compile">${skill ? t("run.recompile_skill") : t("run.compile_skill")}</button></section>
     <div class="split mt">
       <div class="stack">
-        <section class="card"><div class="card-head"><h3>${t("run.verdicts")}</h3><p>${t("run.verdicts_sub")}</p></div>
-          <div class="verdicts">${verdicts.map((v) => `
-            <div class="verdict ${v.status}">
-              <div class="verdict-head"><span class="title">${esc(v.rule_id)} · ${esc(v.statement)}</span>${statusBadge(v.status)}${severityBadge(v.severity)}${categoryBadge(v.category)}</div>
-              <p class="reason"><code>${esc(signature(v.constraint))}</code> ${esc(verdictText(v.reason_code, v.reason_params, v.reason))}</p>
+        <section class="card"><div class="card-head"><h3>${t("run.verdicts")}</h3><p>${t("run.verdicts_sub")}</p>${verdicts.some((v) => v.status === "PASS") ? `<button class="btn ghost small" id="toggle-passed" type="button">${t("run.expand_passed")}</button>` : ""}</div>
+          <div class="verdicts">${verdicts.map((v) => {
+            const head = `<div class="verdict-head"><span class="title">${esc(v.rule_id)} · ${esc(v.statement)}</span>${statusBadge(v.status)}${severityBadge(v.severity)}${categoryBadge(v.category)}</div>
+              <p class="reason"><code>${esc(signature(v.constraint))}</code> ${esc(verdictText(v.reason_code, v.reason_params, v.reason))}</p>`;
+            const evidence = `<div class="evidence-pair">${evidenceLine(v.requirement_evidence_ids, run.evidence, run.video_id)}${evidenceLine(v.observation_evidence_ids, run.evidence, run.video_id)}</div>`;
+            // A passed rule is a summary line; its evidence opens on demand. Anything that needs attention stays open.
+            if (v.status === "PASS") return `<details class="verdict PASS"><summary>${head}</summary>${evidence}</details>`;
+            return `<div class="verdict ${v.status}">${head}
               ${v.needed_evidence ? `<p class="needed">${esc(t("run.needed", { text: verdictText(v.needed_code, v.reason_params, v.needed_evidence) }))}</p>` : ""}
-              <div class="evidence-pair">${evidenceLine(v.requirement_evidence_ids, run.evidence, run.video_id)}${evidenceLine(v.observation_evidence_ids, run.evidence, run.video_id)}</div>
-              ${v.status !== "PASS" ? `<div class="verdict-actions"><span class="muted">${t("run.review")}</span>
+              ${evidence}
+              <div class="verdict-actions"><span class="muted">${t("run.review")}</span>
                 <button class="btn small ${v.review === "accepted" ? "success" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="accepted">${t("run.confirm")}</button>
                 <button class="btn small ${v.review === "rejected" ? "danger" : "ghost"}" data-review="${esc(v.rule_id)}" data-decision="rejected">${t("run.reject")}</button>
                 <span class="spacer" style="flex:1"></span><button class="btn small why" data-why="${esc(v.rule_id)}">✦ ${t("rca.why")}</button></div>
-                <div class="why-slot" data-why-slot="${esc(v.rule_id)}"></div>` : ""}
-            </div>`).join("")}</div>
+                <div class="why-slot" data-why-slot="${esc(v.rule_id)}"></div>
+            </div>`;
+          }).join("")}</div>
         </section>
         <section class="card"><div class="card-head"><h3>${t("run.alignment")}</h3><p>${t("run.alignment_sub")}</p></div>
           <table><thead><tr><th>${t("run.col_event")}</th><th>${t("run.col_observed")}</th><th>${t("run.col_matched")}</th><th>${t("run.col_method")}</th><th>${t("run.col_time")}</th></tr></thead><tbody>
@@ -487,7 +493,7 @@ async function renderRun(id) {
           ${run.traceability_issues?.length ? `<p class="error-text">${esc(t("run.trace_issues", { issues: run.traceability_issues.join("; ") }))}</p>` : ""}
         </section>
       </div>
-      <div class="stack">
+      <div class="stack sticky">
         ${run.video_id ? `<section class="card"><div class="card-head"><h3>${t("run.video")}</h3></div><video id="player" controls preload="metadata" src="/api/videos/${esc(run.video_id)}/file"></video></section>` : ""}
         <section class="card"><div class="card-head"><h3>${t("run.agent")}</h3></div>
           <div class="chat"><textarea id="question" placeholder="${esc(t("run.agent_ph"))}"></textarea>
@@ -496,6 +502,12 @@ async function renderRun(id) {
       </div>
     </div>`;
 
+  $("#toggle-passed")?.addEventListener("click", (e) => {
+    const open = e.target.dataset.open !== "1";
+    view.querySelectorAll("details.verdict").forEach((d) => (d.open = open));
+    e.target.dataset.open = open ? "1" : "0";
+    e.target.textContent = t(open ? "run.collapse_passed" : "run.expand_passed");
+  });
   view.querySelectorAll("[data-review]").forEach((b) =>
     b.addEventListener("click", async () => {
       const current = report.verdicts.find((v) => v.rule_id === b.dataset.review).review;
@@ -574,7 +586,7 @@ async function renderManual(id) {
     ${rs ? `<section class="card"><div class="card-head"><h3>${t("manual.rules")}</h3><p>${t("manual.rules_sub")}</p></div>
       <table><thead><tr><th>${t("manual.col_rule")}</th><th>${t("manual.col_constraint")}</th><th>${t("manual.col_category")}</th><th>${t("manual.col_severity")}</th><th>${t("manual.col_camera")}</th><th>${t("manual.col_source")}</th></tr></thead><tbody>
       ${rs.requirements.map((r) => `<tr><td><b>${esc(r.rule_id)}</b><br>${esc(r.statement)}</td><td><code>${esc(signature(r.constraint))}</code></td><td>${esc(t(`category.${r.category}`))}</td><td>${severityBadge(r.severity)}</td><td>${r.observable ? t("common.yes") : t("common.no")}</td>
-        <td>${r.evidence_ids.map((e) => m.evidence[e]).filter(Boolean).map((e) => `<b>${esc(e.citation)}</b> <q class="muted">${esc(e.text.slice(0, 160))}</q>`).join("<br>")}</td></tr>`).join("")}
+        <td>${r.evidence_ids.map((e) => m.evidence[e]).filter(Boolean).map((e) => `<b>${esc(e.citation)}</b> <q class="muted">${esc(plain(e.text).slice(0, 160))}</q>`).join("<br>")}</td></tr>`).join("")}
       </tbody></table></section>
       <section class="card mt"><div class="card-head"><h3>${t("manual.vocab")}</h3><p>${t("manual.vocab_sub")}</p></div>
         <table><tbody>${rs.events.map((e) => `<tr><td><code>${esc(e.label)}</code></td><td>${esc(e.description)}</td></tr>`).join("")}</tbody></table></section>
@@ -599,7 +611,7 @@ async function renderSkills() {
   const skills = (await rapi("/api/skills")).filter(matches);
   view.innerHTML = `<div class="page-head"><div><h1>${t("skills.title")}</h1><p>${t("skills.subtitle")}</p></div></div>
     <section class="card">${skills.length ? `<table><thead><tr><th>ID</th><th>${t("skills.col_skill")}</th><th>${t("skills.col_procedure")}</th><th>${t("skills.col_verified")}</th><th>${t("skills.col_results")}</th><th>${t("skills.col_review")}</th><th>${t("skills.col_created")}</th><th></th></tr></thead><tbody>
-    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td>${esc(s.id)}</td><td><code>${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td>${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `${statusBadge(k)} ${n}`).join(" ")}</td><td>${reviewBadge(s)}</td><td class="nowrap">${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
+    ${skills.map((s) => `<tr class="clickable" data-href="#skill/${esc(s.id)}"><td class="id">${esc(s.id)}</td><td><code class="clip" title="${esc(s.name)}">${esc(s.name)}</code></td><td>${esc(s.procedure)}</td><td>${esc(s.run_id)}</td><td><div class="results">${Object.entries(s.verification_summary || {}).filter(([, n]) => n).map(([k, n]) => `<span class="nowrap">${statusBadge(k)} ${n}</span>`).join("")}</div></td><td>${reviewBadge(s)}</td><td class="nowrap">${fmtDate(s.created_at)}</td><td><a href="/api/skills/${esc(s.id)}/download">${t("common.download")}</a></td></tr>`).join("")}
     </tbody></table>` : `<p class="empty">${t("skills.none")}</p>`}</section>`;
   bindRowLinks(view);
 }
@@ -620,7 +632,7 @@ async function renderSkill(id) {
 async function renderReports() {
   const runs = (await rapi("/api/runs")).filter((r) => r.status === "done" && matches(r));
   const details = await Promise.all(runs.slice(0, 20).map((r) => rapi(`/api/runs/${encodeURIComponent(r.id)}`)));
-  const pct = (m) => (m ? `${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span>` : "-");
+  const pct = (m) => (m ? `<span class="nowrap">${Math.round(m.value * 100)}% <span class="muted">(${m.numerator}/${m.denominator})</span></span>` : "-");
   view.innerHTML = `<div class="page-head"><div><h1>${t("reports.title")}</h1><p>${t("reports.subtitle")}</p></div></div>
     <section class="card">${details.length ? `<table><thead><tr><th>${t("reports.col_run")}</th><th>${t("runs.col_video")}</th><th>${t("runs.col_result")}</th><th>${t("reports.col_trace")}</th><th>${t("reports.col_safety")}</th><th>${t("reports.col_steps")}</th><th>${t("reports.col_alignment")}</th><th>${t("reports.col_pass")}</th><th>${t("reports.col_violation")}</th><th>${t("reports.col_unverified")}</th><th>${t("reports.col_insufficient")}</th></tr></thead><tbody>
     ${details.map((r) => `<tr class="clickable" data-href="#run/${esc(r.id)}"><td class="id">${esc(r.id)}</td><td>${esc(r.video_name)}</td><td>${resultBadge(r)}</td><td>${pct(r.metrics.evidence_traceability)}</td><td>${pct(r.metrics.safety_coverage)}</td><td>${pct(r.metrics.step_coverage)}</td><td>${pct(r.metrics.observation_alignment)}</td>

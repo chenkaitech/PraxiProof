@@ -1,6 +1,6 @@
 {
-  "title": "Video B — only 5 of 6 fans installed",
-  "title_zh": "视频 B — 只装了 5 个风扇(应为 6 个)",
+  "title": "Video B: only 5 of 6 fans installed",
+  "title_zh": "视频 B：只装了 5 个风扇(应为 6 个)",
   "video_name": "cover_install_B.mp4",
   "expected": {
     "R-101": "PASS",
