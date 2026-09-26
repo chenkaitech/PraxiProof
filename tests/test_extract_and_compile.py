@@ -204,3 +204,21 @@ def test_nothing_is_repaired_when_nothing_was_rejected(reference):
     fake = FakeLLM(json_handler=lambda *_: reference_as_llm_output(reference))
     result = compile_requirements(reference[1], fake, "fake-llm", procedure="Front Fan Module Replacement")
     assert result.repaired == 0 and len(fake.json_calls) == 1
+
+
+def test_a_rule_whose_statement_is_just_a_keyword_is_rejected_and_can_be_repaired(reference):
+    hollow = _rule("BEFORE", _c("BEFORE", a="bezel_removed", b="fan_removed"))
+    raw = REPAIR_RAW | {"requirements": [_rule("good", _c("MUST_HAVE", event="fan_removed")), hollow]}
+    fixed = _rule("Remove the bezel before removing the fan.", _c("BEFORE", a="bezel_removed", b="fan_removed"))
+
+    def handler(model, messages, schema, images):
+        return {"requirements": [fixed]} if list(schema["properties"]) == ["requirements"] else raw
+
+    result = compile_requirements(reference[1], FakeLLM(json_handler=handler), "fake-llm")
+    assert [r.statement for r in result.requirement_set.requirements] == ["good", "Remove the bezel before removing the fan."]
+    assert result.repaired == 1 and result.rejected == []
+
+    no_repair = build_requirement_set(reference[1], raw, {1}, "fake")
+    assert [r.statement for r in no_repair.requirement_set.requirements] == ["good"]
+    assert "statement is not a description" in no_repair.rejected[0].error and "'BEFORE'" in no_repair.rejected[0].error
+    assert build_requirement_set(reference[1], raw | {"requirements": [_rule("MUST_HAVE(fan_removed)", _c("MUST_HAVE", event="fan_removed"))]}, {1}, "fake").rejected

@@ -244,6 +244,11 @@ def build_requirement_set(doc: ExtractedDocument, raw: dict[str, Any], allowed_b
             if direction != _ORDERING[constraint.type]:
                 rejected.append(RejectedItem(item=item, error=f"{constraint.signature()} contradicts the step order {list(position)}"))
                 continue
+        statement = str(item.get("statement") or "").strip()
+        if not statement or statement.upper() in {c.value for c in ConstraintType} or statement == constraint.signature():
+            # A rule the reader cannot read is not a rule someone wrote down; seen from a hosted model: statement "BEFORE".
+            rejected.append(RejectedItem(item=item, error=f"statement is not a description of the rule: {statement!r}"))
+            continue
         sources = sorted({b for b in item.get("source_blocks", []) if b in allowed_blocks})
         if not sources:
             rejected.append(RejectedItem(item=item, error="no valid source block cited"))
