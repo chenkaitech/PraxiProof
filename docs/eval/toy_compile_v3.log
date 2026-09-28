@@ -1,0 +1,18 @@
+provider=openai model=step-3.5-flash
+run 1: 2 rules, 0 rejected, 1 repaired (122s)
+    events: ['toy_fully_disassembled', 'axles_and_wheels_attached_to_chassis', 'all_screws_reinserted']
+run 2: 2 rules, 0 rejected, 2 repaired (115s)
+    events: ['toy_fully_disassembled', 'toy_fully_rebuilt']
+run 3: 0 rules, 18 rejected, 0 repaired (150s)
+    events: []
+    11 x no valid source block cited
+    7 x 
+    e.g. : Value error, BEFORE does not use 'event' | {'statement': 'The toy must be fully taken apart into its separate loose parts before reassembly begins.', 'category': 'procedure', 'severity': 'major', 'observ
+    e.g. no valid source block cited | {'statement': 'The toy must be fully reassembled into one piece by the end of the procedure.', 'category': 'procedure', 'severity': 'major', 'observable': True,
+run 4: 7 rules, 0 rejected, 2 repaired (73s)
+    events: ['toy_fully_disassembled', 'disassembled_components_placed_on_table', 'toy_fully_reassembled', 'toy_structural_integrity_confirmed']
+run 5: 2 rules, 0 rejected, 2 repaired (146s)
+    events: ['toy_fully_disassembled_into_loose_parts', 'axles_and_wheels_installed_on_chassis', 'toy_structural_integrity_confirmed']
+run 6: 8 rules, 0 rejected, 5 repaired (98s)
+    events: ['all_toy_screws_removed', 'toy_fully_disassembled_into_loose_parts', 'disassembled_components_placed_on_table', 'axles_and_wheels_installed_on_chassis', 'cab_installed_on_chassis', 'all_screws_reinstalled', 'rebuilt_toy_confirmed_as_single_unit']
+ALLDONE

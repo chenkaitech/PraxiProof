@@ -336,3 +336,12 @@ def test_a_hosted_text_model_name_is_not_checked_against_the_ollama_catalogue(se
         validate_changes({"vlm_model": "step-3.5-flash"}, catalogue, llm_in_models=False)  # frames still need a local vision model
     with pytest.raises(ValueError, match="not installed"):
         validate_changes({"llm_model": "step-3.5-flash"}, catalogue)
+
+
+def test_a_seeded_reference_manual_refuses_to_be_recompiled(client, reference):
+    rs, *_ = reference
+    core = client.app.state.core
+    record = core.store.create("manuals", {"filename": "reference.md", "status": "ready", "requirement_set": rs.model_dump(mode="json")})
+    r = client.post(f"/api/manuals/{record['id']}/recompile")
+    assert r.status_code == 400 and "fixed reference file" in r.json()["detail"]
+    assert core.store.get("manuals", record["id"])["status"] == "ready"  # untouched, not queued for recompile

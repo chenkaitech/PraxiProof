@@ -76,6 +76,12 @@ Rules:
 - Repeated identical steps (installing several identical fans or power supplies) share ONE event label,
   and the number required becomes a COUNT rule. Do not create numbered events such as psu_1_installed and
   psu_2_installed: a camera cannot tell which identical part is "first" or "second".
+- A tool or motion that is only HOW a described action is carried out (e.g. turning a screwdriver to remove
+  a part, turning a wrench to loosen a bolt) is not its own event: fold it into the action it accomplishes
+  (one "part_removed" event, not separate "screw_turned" and "part_removed" events). Only split one sentence
+  into two events when the manual treats them as separately checkable (numbered as separate steps, or one is
+  verified independently of the other): a camera watching continuously cannot reliably tell "mid-motion" from
+  "motion complete" apart.
 - When the manual offers alternatives ("any of the following", "or"), define ONE event covering all of them
   (e.g. "fan_health_confirmed: amber LED off, BMC sensors, or nvsm show fans checked") instead of one
   mandatory event per alternative. Mark it observable=false only if none of the alternatives is visible.

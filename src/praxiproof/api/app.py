@@ -264,6 +264,12 @@ def create_app(
 
     @app.post("/api/manuals/{manual_id}/recompile", status_code=202)
     def recompile_manual(manual_id: str, background: BackgroundTasks) -> dict[str, Any]:
+        existing = core.store.get("manuals", manual_id)
+        if (existing.get("requirement_set") or {}).get("compiler_model") == "reference":
+            # Seeded verbatim from demo/requirements/*.json (see deploy/eval/seed_reference_manuals.py) so that
+            # canned demo observations always match its event labels; an LLM recompile could drift the wording
+            # (e.g. "fan_inserted" -> "fan_installed") and silently break every demo observation paired with it.
+            raise ValueError("this manual was seeded from a fixed reference file and is not recompiled; upload it again as a new manual to edit it")
         record = core.store.update("manuals", manual_id, status="queued", error=None)
         background.add_task(_job, core.process_manual, manual_id)
         return record

@@ -18,6 +18,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("manual", type=Path)
 ap.add_argument("--procedure")
 ap.add_argument("--runs", type=int, default=1)
+ap.add_argument("--events", action="store_true", help="also print the compiled event vocabulary")
 args = ap.parse_args()
 
 settings = load_overrides(get_settings())
@@ -33,6 +34,8 @@ for i in range(1, args.runs + 1):
         continue
     reasons = Counter(r.error.split(":")[0][:70] for r in result.rejected)
     print(f"run {i}: {len(result.requirement_set.requirements)} rules, {len(result.rejected)} rejected, {result.repaired} repaired ({time.time() - started:.0f}s)")
+    if args.events:
+        print(f"    events: {[e.label for e in result.requirement_set.events]}")
     for reason, n in reasons.most_common(5):
         print(f"    {n} x {reason}")
     for r in result.rejected[:2]:

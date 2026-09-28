@@ -1,0 +1,10 @@
+provider=openai model=step-3.5-flash
+run 1: 7 rules, 0 rejected, 7 repaired (104s)
+run 2: 1 rules, 1 rejected, 0 repaired (135s)
+    1 x 
+    e.g. : Value error, BEFORE does not use 'event' | {'statement': 'The toy must be fully taken apart into its separate loose parts before reassembly begins.', 'category': 'procedure', 'severity': 'major', 'observ
+run 3: 2 rules, 0 rejected, 2 repaired (97s)
+run 4: 2 rules, 0 rejected, 2 repaired (117s)
+run 5: 6 rules, 0 rejected, 2 repaired (99s)
+run 6: LLMError: response still streaming after 480s; giving up (limit 480s) (480s)
+ALLDONE

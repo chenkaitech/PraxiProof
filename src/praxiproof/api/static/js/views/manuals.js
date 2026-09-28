@@ -15,7 +15,7 @@ async function renderManual(id) {
   const m = await rapi(`/api/manuals/${encodeURIComponent(id)}`);
   const rs = m.requirement_set;
   view.innerHTML = `<div class="page-head"><div><h1>${esc(m.procedure || m.filename)}</h1><p>${esc(m.id)} · ${esc(m.filename)} · ${esc(m.extractor || "")}${m.page_count ? ` · ${esc(t("common.pages", { n: m.page_count }))}` : ""}</p></div><div class="spacer"></div>
-      ${statusBadge(m.status)}<button class="btn ghost" id="recompile">${t("manual.recompile")}</button><a class="btn ghost" href="#manuals">${t("manual.back")}</a></div>
+      ${statusBadge(m.status)}${rs?.compiler_model === "reference" ? `<span class="muted small">${t("manual.reference")}</span>` : `<button class="btn ghost" id="recompile">${t("manual.recompile")}</button>`}<a class="btn ghost" href="#manuals">${t("manual.back")}</a></div>
     ${m.status === "failed" ? `<section class="card"><p class="error-text">${esc(m.error)}</p></section>` : ""}
     ${busy(m.status) ? `<section class="card"><p>${ICON.spin} ${esc(m.procedure_hint ? t("manual.working_focus", { hint: m.procedure_hint }) : t("manual.working"))}</p></section>` : ""}
     ${rs ? `<section class="card"><div class="card-head"><h3>${t("manual.rules")}</h3><p>${t("manual.rules_sub")}</p></div>
@@ -27,6 +27,6 @@ async function renderManual(id) {
         <table><tbody>${rs.events.map((e) => `<tr><td><code>${esc(e.label)}</code></td><td>${esc(e.description)}</td></tr>`).join("")}</tbody></table></section>
       ${m.rejected?.length ? `<section class="card mt"><div class="card-head"><h3>${t("manual.rejected")}</h3><p>${t("manual.rejected_sub")}</p></div>
         <table><tbody>${m.rejected.map((r) => `<tr><td class="error-text">${esc(r.error)}</td><td><code>${esc(JSON.stringify(r.item).slice(0, 240))}</code></td></tr>`).join("")}</tbody></table></section>` : ""}` : ""}`;
-  $("#recompile").addEventListener("click", async () => { await api(`/api/manuals/${encodeURIComponent(id)}/recompile`, { method: "POST" }); render(true); });
+  $("#recompile")?.addEventListener("click", async () => { await api(`/api/manuals/${encodeURIComponent(id)}/recompile`, { method: "POST" }); render(true); });
   schedulePoll(busy(m.status));
 }
