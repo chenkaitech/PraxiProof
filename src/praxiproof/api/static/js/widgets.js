@@ -94,7 +94,8 @@ function findingCard(f, compact = false) {
   const violation = f.status === "VIOLATION";
   const manual = f.manual[0];
   const video = f.video[0];
-  const frame = video && f.video_id ? `<img src="/api/videos/${esc(f.video_id)}/frame?t=${video.start.toFixed(1)}" alt="" data-seek="${video.start}">` : "";
+  const external = video?.source_type === "external_observation";
+  const frame = video && f.video_id && !external ? `<img src="/api/videos/${esc(f.video_id)}/frame?t=${video.start.toFixed(1)}" alt="" data-seek="${video.start}">` : "";
   return `<div class="finding ${violation ? "" : "unverified"}">
     <div class="finding-top"><div class="alert">${ICON.alert}</div>
       <div style="flex:1"><h4>${esc(t(`result.${f.kind}`))}: ${esc(f.statement)}</h4><p>${esc(verdictText(f.reason_code, f.reason_params, f.reason))}</p>
@@ -103,7 +104,7 @@ function findingCard(f, compact = false) {
     </div>
     <div class="evidence-pair">
       <div class="evidence-box"><div class="label">${esc(t("finding.reference"))}</div><b>${esc(t("finding.manual", { cite: manual?.citation || "-" }))}</b>${manual ? `<q>${esc(plain(manual.text).slice(0, compact ? 110 : 400))}</q>` : ""}</div>
-      <div class="evidence-box"><div class="label">${esc(t("finding.video"))}</div><b>${video ? `${fmtTime(video.start)} to ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
+      <div class="evidence-box"><div class="label">${esc(t(external ? "finding.external" : "finding.video"))}</div><b>${video ? `${fmtTime(video.start)} to ${fmtTime(video.end)}` : esc(t("finding.not_observed"))}</b>${frame}${video && !external ? `<span class="muted">${esc(f.video_name)}</span>` : ""}</div>
     </div>
   </div>`;
 }
@@ -115,6 +116,8 @@ function evidenceLine(ids, evidence, videoId) {
     .map((e) =>
       e.source_type === "document"
         ? `<div class="evidence-box"><div class="label">${esc(t("ev.manual", { cite: e.citation }))}${e.locator.section && e.locator.section !== e.citation ? ` · ${esc(e.locator.section)}` : ""}</div><q>${esc(plain(e.text))}</q></div>`
+        : e.source_type === "external_observation"
+        ? `<div class="evidence-box"><div class="label">${esc(t("ev.external", { cite: e.citation, pct: Math.round(e.confidence * 100) }))}</div>${esc(e.text)}</div>`
         : `<div class="evidence-box"><div class="label">${esc(t("ev.video", { cite: e.citation, pct: Math.round(e.confidence * 100) }))}</div>${esc(e.text)}${videoId ? `<img src="/api/videos/${esc(videoId)}/frame?t=${e.locator.start.toFixed(1)}" alt="" data-seek="${e.locator.start}">` : ""}</div>`
     )
     .join("");

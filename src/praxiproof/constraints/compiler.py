@@ -259,10 +259,16 @@ def build_requirement_set(doc: ExtractedDocument, raw: dict[str, Any], allowed_b
         if not sources:
             rejected.append(RejectedItem(item=item, error="no valid source block cited"))
             continue
+        cited = [doc.evidence_for(b) for b in sources]
+        if not _cites_relevant_text(statement, constraint, cited):
+            # The cited blocks exist in the manual, but share no vocabulary with the rule: catches a
+            # citation to an unrelated passage. This is a lexical heuristic, not a semantic entailment
+            # check, so it only catches gross mismatches, not a subtly wrong-but-on-topic citation.
+            rejected.append(RejectedItem(item=item, error=f"cited block(s) {sources} share no vocabulary with the rule statement"))
+            continue
         if constraint.signature() in seen_signatures:
             continue
         seen_signatures.add(constraint.signature())
-        cited = [doc.evidence_for(b) for b in sources]
         evidence.update({e.evidence_id: e for e in cited})
         try:
             requirements.append(
@@ -299,3 +305,28 @@ def build_requirement_set(doc: ExtractedDocument, raw: dict[str, Any], allowed_b
 def _first_error(exc: ValidationError) -> str:
     error = exc.errors()[0]
     return f"{'.'.join(str(p) for p in error['loc'])}: {error['msg']}"
+
+
+_STOPWORDS = {
+    "the", "and", "for", "with", "this", "that", "must", "shall", "should", "from", "into", "onto", "when",
+    "while", "before", "after", "then", "once", "step", "steps", "procedure", "technician", "ensure", "verify",
+}
+
+
+def _keywords(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z][a-z0-9]{2,}", text.lower()) if w not in _STOPWORDS}
+
+
+def _cites_relevant_text(statement: str, constraint: Constraint, cited: list[Evidence]) -> bool:
+    """Reject a citation with zero vocabulary overlap with the rule it is supposed to support.
+
+    This does not verify the citation actually SAYS what the rule claims (that needs real semantic
+    understanding, or a human reviewer): it only catches the case where source_blocks points at valid
+    block indices whose text is about something else entirely, since format validation alone (does this
+    block index exist?) lets that through silently.
+    """
+    rule_terms = _keywords(statement) | {w for label in constraint.events() for w in re.split(r"[_\s]+", label.lower())}
+    if not rule_terms:
+        return True
+    block_terms = _keywords(" ".join(e.text or "" for e in cited))
+    return bool(rule_terms & block_terms)

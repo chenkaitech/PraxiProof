@@ -25,7 +25,7 @@ class VideoLocator(BaseModel):
 
 class Evidence(BaseModel):
     evidence_id: str = Field(default_factory=lambda: f"EV-{uuid.uuid4().hex[:10]}")
-    source_type: Literal["document", "video"]
+    source_type: Literal["document", "video", "external_observation"]
     source_id: str
     sha256: str
     locator: Annotated[DocumentLocator | VideoLocator, Field(discriminator="kind")]

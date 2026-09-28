@@ -17,22 +17,28 @@ def _compare(first: ObservedEvent, second: ObservedEvent) -> int:
 
 
 def check_before(req: Requirement, index: EventIndex) -> Verdict:
+    """a must be fully done before any b starts: compare the LAST a against the FIRST b.
+
+    Comparing only the first occurrence of each (as an earlier version did) lets a repeated action satisfy
+    the rule by having just one early instance, even if later repeats happen after b has already started.
+    """
     a, b = req.constraint.a, req.constraint.b
     if not index.confident(b):
         return unseen_verdict(req, index, [b], absence_is_violation=False, context="ctx.cannot_before")
     if not index.confident(a):
         return unseen_verdict(req, index, [a], absence_is_violation=True, context="ctx.must_before")
-    result = _ordered_verdict(req, index.confident(a)[0], index.confident(b)[0], a, b)
+    result = _ordered_verdict(req, index.confident(a)[-1], index.confident(b)[0], a, b)
     return _soften_isolated(result, req, index, earlier=a, later=b)
 
 
 def check_after(req: Requirement, index: EventIndex) -> Verdict:
+    """a must start only after every b is done: compare the LAST b against the FIRST a. See check_before."""
     a, b = req.constraint.a, req.constraint.b
     if not index.confident(b):
         return unseen_verdict(req, index, [b], absence_is_violation=False, context="ctx.cannot_after")
     if not index.confident(a):
         return unseen_verdict(req, index, [a], absence_is_violation=True, context="ctx.must_after")
-    result = _ordered_verdict(req, index.confident(b)[-1], index.confident(a)[-1], b, a)
+    result = _ordered_verdict(req, index.confident(b)[-1], index.confident(a)[0], b, a)
     return _soften_isolated(result, req, index, earlier=b, later=a)
 
 

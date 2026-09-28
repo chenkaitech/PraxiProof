@@ -104,6 +104,34 @@ def test_video_run_uses_backend(client, make_video):
     assert run["findings"][0]["video"][0]["start"] == 10
 
 
+def test_client_supplied_observation_is_tagged_external_not_video(client):
+    """POSTing a raw observation to /api/runs (no video, no demo_observation) is a caller's claim, not
+    something our own backend derived from a video file. Its evidence must say so, distinctly from both
+    real video-backend evidence and from the demo fixtures (which use the same observation field but are
+    server-controlled, so they still count as "video")."""
+    manual = _upload_manual(client)
+    observation = {
+        "source_id": "claimed",
+        "duration": 20,
+        "backend": "ddm_vlm",  # a caller can claim any backend name; that alone must not be trusted
+        "events": [
+            {"event_id": "O-1", "label": "fan_removed", "start": 1, "end": 2, "confidence": 0.9},
+            {"event_id": "O-2", "label": "fan_inserted", "start": 3, "end": 4, "confidence": 0.9},
+        ],
+    }
+    run_id = client.post("/api/runs", json={"manual_id": manual["id"], "observation": observation}).json()["id"]
+    run = client.get(f"/api/runs/{run_id}").json()
+    assert run["status"] == "done", run.get("error")
+    obs_evidence = [e for e in run["evidence"].values() if e["source_id"] == "claimed"]
+    assert obs_evidence and all(e["source_type"] == "external_observation" for e in obs_evidence)
+
+    # For comparison, the exact same observation field via a demo fixture stays tagged "video".
+    demo_run_id = client.post("/api/runs", json={"manual_id": manual["id"], "demo_observation": "fan_replacement_C"}).json()["id"]
+    demo_run = client.get(f"/api/runs/{demo_run_id}").json()
+    demo_evidence = [e for e in demo_run["evidence"].values() if e["source_type"] in ("video", "external_observation")]
+    assert demo_evidence and all(e["source_type"] == "video" for e in demo_evidence)
+
+
 def test_missing_step_result(client):
     manual = _upload_manual(client)
     run_id = client.post("/api/runs", json={"manual_id": manual["id"], "demo_observation": "fan_replacement_B"}).json()["id"]
@@ -246,6 +274,25 @@ def test_pipeline_with_a_bad_manual_stores_nothing(client):
     )
     assert r.status_code == 400
     assert client.get("/api/videos").json() == [] and client.get("/api/manuals").json() == []
+
+
+def test_pipeline_where_the_manual_fails_after_the_video_already_saved_stores_nothing(settings, reference, make_video):
+    """The video is saved and committed to the store before the manual is even opened. If the manual step
+    then fails (here: it is over the size limit), the request must not leave that video behind as an orphan
+    with no pipeline pointing at it — the whole /api/pipelines call is one unit or it is nothing."""
+    with _client_with(settings, reference, max_upload_mb=1) as c:
+        small_video = make_video(2).read_bytes()
+        assert len(small_video) < 1024 * 1024
+        oversized_manual = b"<html>" + b"x" * (1024 * 1024 + 1) + b"</html>"
+        r = c.post(
+            "/api/pipelines",
+            files={"manual": ("m.html", oversized_manual, "text/html"), "video": ("v.mp4", small_video, "video/mp4")},
+            data={"procedure": "Front Fan Module Replacement"},
+        )
+        assert r.status_code == 413 and "1 MB limit" in r.json()["detail"]
+        assert c.get("/api/videos").json() == []
+        assert c.get("/api/manuals").json() == []
+        assert c.get("/api/pipelines").json() == []
 
 
 def test_api_token_protects_the_api_but_not_health_or_the_ui(settings, reference):

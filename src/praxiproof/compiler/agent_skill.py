@@ -179,7 +179,7 @@ def _evidence_md(skill: SkillIR, report: VerificationReport, evidence: Mapping[s
         for eid in v.requirement_evidence_ids + v.observation_evidence_ids:
             item = evidence.get(eid)
             if item:
-                source = "Manual" if item.source_type == "document" else "Video"
+                source = {"document": "Manual", "video": "Video"}.get(item.source_type, "Externally-submitted observation (not from a video)")
                 lines.append(f"- {source} {item.citation()} (`{eid}`, sha256 {item.sha256[:12]}): {item.text or ''}")
         lines.append("")
     return "\n".join(lines)

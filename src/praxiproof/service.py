@@ -159,13 +159,25 @@ class PraxiProof:
         size = target.stat().st_size
         return self.store.update("videos", record["id"], path=str(target), size_bytes=size)
 
+    def discard_video(self, video_id: str) -> None:
+        """Undo add_video: used when a video was saved but a later step in the same request failed, so the
+        request as a whole should leave no trace (see start_pipeline in app.py)."""
+        try:
+            record = self.store.get("videos", video_id)
+        except NotFound:
+            return
+        Path(record["path"]).unlink(missing_ok=True)
+        self.store.delete("videos", video_id)
+
     def frame(self, video_id: str, seconds: float) -> bytes:
         key = self.data_dir / "frames" / f"{video_id}-{seconds:.1f}.jpg"
         if not key.exists():
             key.write_bytes(frame_at(Path(self.store.get("videos", video_id)["path"]), seconds, 480))
         return key.read_bytes()
 
-    def create_run(self, manual_id: str, video_id: str | None, observation: dict[str, Any] | None, label: str | None) -> dict[str, Any]:
+    def create_run(
+        self, manual_id: str, video_id: str | None, observation: dict[str, Any] | None, label: str | None, external: bool = False
+    ) -> dict[str, Any]:
         manual = self.store.get("manuals", manual_id)
         if manual.get("status") != "ready":
             raise ValueError(f"manual {manual_id} is not ready")
@@ -185,6 +197,9 @@ class PraxiProof:
                 "video_id": video_id,
                 "video_name": video_name or "observation.json",
                 "input_observation": observation,
+                # True only for a caller-supplied observation posted straight to the API (not a video_id run,
+                # not a demo fixture): its evidence is tagged "external_observation", not "video".
+                "external_observation": external,
                 "status": "queued",
                 "stage": None,
                 "error": None,
@@ -201,7 +216,9 @@ class PraxiProof:
                     Path(video["path"]), run["video_id"], requirements.events, requirements.procedure
                 )
             else:
-                observation, video_evidence = observation_with_evidence(run["input_observation"], run_id)
+                observation, video_evidence = observation_with_evidence(
+                    run["input_observation"], run_id, external=bool(run.get("external_observation"))
+                )
             self.store.put_evidence(video_evidence)
 
             self.store.update("runs", run_id, stage="aligning")
@@ -468,14 +485,18 @@ def _run_row(run: dict[str, Any]) -> dict[str, Any]:
     return {k: run.get(k) for k in keys}
 
 
-def observation_with_evidence(data: dict[str, Any], run_id: str) -> tuple[Observation, list[Evidence]]:
+def observation_with_evidence(data: dict[str, Any], run_id: str, external: bool = False) -> tuple[Observation, list[Evidence]]:
+    """external=True marks events that did not come from a video file processed by our own backends: a
+    caller posted this observation JSON directly to /api/runs. Demo fixtures (external=False) are trusted,
+    server-controlled data standing in for a video; a client-submitted observation is not, and should not be
+    displayed or traced as if it were camera evidence (see traceability(), agent_skill.py, widgets.js)."""
     observation = Observation.model_validate(data)
     digest = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
     evidence, events = [], []
     for event in observation.events:
         item = Evidence(
             evidence_id=event.evidence_id or f"EV-{run_id}-{event.event_id}",
-            source_type="video",
+            source_type="external_observation" if external else "video",
             source_id=observation.source_id,
             sha256=digest,
             locator=VideoLocator(start=event.start, end=event.end),

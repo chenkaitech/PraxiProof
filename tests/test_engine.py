@@ -109,6 +109,33 @@ def test_order_statuses():
     assert _status(hidden, _obs(("fan_inserted", 1, 2, 0, 0.9))) == [Status.UNVERIFIED]
 
 
+def test_order_statuses_catches_repeated_event_interleaving():
+    """BEFORE(fan_installed, psu_installed) must fail when some fans are installed after a PSU, even though
+    the first fan is well before the first PSU: comparing only first-vs-first (an earlier bug) missed this."""
+    rules = _rules({"type": "BEFORE", "a": "fan_installed", "b": "psu_installed"})
+    three_then_one_then_three = (
+        [("fan_installed", t, t + 2, 0.2, 0.9) for t in (0, 5, 10)]
+        + [("psu_installed", 15, 17, 0.2, 0.9)]
+        + [("fan_installed", t, t + 2, 0.2, 0.9) for t in (20, 25, 30)]
+    )
+    assert _status(rules, _obs(*three_then_one_then_three)) == [Status.VIOLATION]
+
+    all_fans_first = (
+        [("fan_installed", t, t + 2, 0.2, 0.9) for t in (0, 5, 10, 15, 20, 25)]
+        + [("psu_installed", t, t + 2, 0.2, 0.9) for t in (30, 35)]
+    )
+    assert _status(rules, _obs(*all_fans_first)) == [Status.PASS]
+
+    after = _rules({"type": "AFTER", "a": "health_checked", "b": "fan_inserted"})
+    one_checked_too_early = (
+        [("fan_inserted", t, t + 2, 0.2, 0.9) for t in (0, 5, 10)]
+        + [("health_checked", 7, 8, 0.2, 0.9)]
+        + [("fan_inserted", t, t + 2, 0.2, 0.9) for t in (20, 25)]
+        + [("health_checked", 30, 31, 0.2, 0.9)]
+    )
+    assert _status(after, _obs(*one_checked_too_early)) == [Status.VIOLATION]
+
+
 def test_precondition_statuses():
     rules = _rules({"type": "PRECONDITION", "a": "power_off", "b": "cover_opened"})
     assert _status(rules, _obs(("power_off", 1, 2, 0, 0.9), ("cover_opened", 10, 12, 0, 0.9))) == [Status.PASS]

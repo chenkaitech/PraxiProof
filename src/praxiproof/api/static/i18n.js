@@ -151,6 +151,7 @@ const STRINGS = {
     "finding.reference": "Reference",
     "finding.manual": "Manual {cite}",
     "finding.video": "Video Evidence",
+    "finding.external": "Externally-submitted observation (not a video)",
     "finding.not_observed": "Not observed",
 
     "dialog.title": "Start verification",
@@ -302,6 +303,7 @@ const STRINGS = {
     "eval.cv_note": "Confidence intervals resample whole recordings (10,000 rounds). “Untouched” excludes Install_12/13, which earlier prompt and voting choices were tuned on. All recordings share one setup, so this does not show generalisation to other environments.",
     "ev.manual": "Manual {cite}",
     "ev.video": "Video {cite} · confidence {pct}%",
+    "ev.external": "Externally-submitted observation {cite} · confidence {pct}% (not from a video)",
 
     "manuals.title": "Manuals",
     "manuals.subtitle": "Official procedures compiled into executable rules.",
@@ -554,6 +556,7 @@ const STRINGS = {
     "finding.reference": "依据",
     "finding.manual": "手册 {cite}",
     "finding.video": "视频证据",
+    "finding.external": "外部提交的观测数据（非视频）",
     "finding.not_observed": "未观测到",
 
     "dialog.title": "开始验证",
@@ -705,6 +708,7 @@ const STRINGS = {
     "eval.cv_note": "置信区间按整段录像重采样(10000 轮)。“未调参”指排除 Install_12/13,之前的提示词和投票选择是在这两段上调的。所有录像来自同一套场景,因此这并不能说明对其他环境的泛化。",
     "ev.manual": "手册 {cite}",
     "ev.video": "视频 {cite} · 置信度 {pct}%",
+    "ev.external": "外部提交的观测数据 {cite} · 置信度 {pct}%（非视频）",
 
     "manuals.title": "手册",
     "manuals.subtitle": "官方规程被编译为可执行的规则。",

@@ -312,10 +312,13 @@ def create_app(
 
     @app.post("/api/runs", status_code=202)
     def start_run(body: RunRequest, background: BackgroundTasks) -> dict[str, Any]:
+        # A raw client-supplied observation (not a demo fixture, not a real video) is untrusted: its evidence
+        # must not be labeled as if it came from an actual video file. See observation_with_evidence().
+        external = body.observation is not None and not body.demo_observation
         observation, label = body.observation, None
         if body.demo_observation:
             observation, label = _demo_observation(body.demo_observation)
-        record = core.create_run(body.manual_id, body.video_id, observation, label)
+        record = core.create_run(body.manual_id, body.video_id, observation, label, external=external)
         background.add_task(_job, core.process_run, record["id"])
         return record
 
@@ -344,16 +347,26 @@ def create_app(
             core.store.get("manuals", manual_id)
         if video_id:
             core.store.get("videos", video_id)
+        new_video_id = None
         if video is not None:
             path = _save_video(video)
             try:
                 video_id = core.add_video(path, video.filename or "video.mp4", video_note)["id"]
+                new_video_id = video_id
             except FFmpegError:
                 path.unlink(missing_ok=True)
                 raise
-        if manual is not None:
-            manual_id = core.add_manual(_save_manual(manual), manual.filename or "manual", procedure or None)["id"]
-        record = core.create_pipeline(manual_id, video_id, observation, label)
+        try:
+            if manual is not None:
+                manual_id = core.add_manual(_save_manual(manual), manual.filename or "manual", procedure or None)["id"]
+            record = core.create_pipeline(manual_id, video_id, observation, label)
+        except BaseException:
+            # A video saved above belongs to this request alone (a caller-supplied existing video_id must
+            # never be touched here); if a later step in the same request fails, the request should leave
+            # no orphaned record behind rather than a video with no pipeline pointing at it.
+            if new_video_id is not None:
+                core.discard_video(new_video_id)
+            raise
         background.add_task(_job, core.process_pipeline, record["id"])
         return record
 

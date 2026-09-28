@@ -92,12 +92,34 @@ def test_compile_rejects_invalid_items(reference):
     assert {e.label for e in result.requirement_set.events} == {"fan_removed", "fan_inserted"}
 
 
+def test_compile_rejects_citation_unrelated_to_the_rule(reference):
+    """source_blocks only proves the cited block index exists in the manual, not that its text supports the
+    rule. Block 8 is real manual text about shipping a failed unit back; it says nothing about removing a
+    fan, so a rule claiming that block as its evidence for "the fan must be removed" should be rejected."""
+    doc = reference[1]
+    assert "fan" not in doc.blocks[8].text.lower() and "remov" not in doc.blocks[8].text.lower()
+    raw = {
+        "procedure": "p",
+        "events": [{"label": "fan_removed", "description": "d"}],
+        "requirements": [
+            {"statement": "The fan module must be removed", "category": "procedure", "severity": "major", "observable": True,
+             "source_blocks": [8], "constraint": {"type": "MUST_HAVE", "event": "fan_removed", "a": None, "b": None, "seconds": None, "min_count": None}},
+        ],
+    }
+    result = build_requirement_set(doc, raw, {8}, "fake")
+    assert result.requirement_set.requirements == []
+    assert len(result.rejected) == 1
+    assert "no vocabulary" in result.rejected[0].error
+
+
 def test_compile_rejects_ordering_that_contradicts_sequence(reference):
     doc = reference[1]
 
     def item(kind, a, b):
+        # source_blocks cites real manual text mentioning "bezel" and "fan" (blocks 6, 7, 11) so the citation
+        # vocabulary check in build_requirement_set does not reject these before the ordering check runs.
         return {
-            "statement": f"{kind} {a} {b}", "category": "procedure", "severity": "major", "observable": True, "source_blocks": [1],
+            "statement": f"{kind} {a} {b}", "category": "procedure", "severity": "major", "observable": True, "source_blocks": [6, 7, 11],
             "constraint": {"type": kind, "event": None, "a": a, "b": b, "seconds": None, "min_count": None},
         }
 
@@ -113,7 +135,7 @@ def test_compile_rejects_ordering_that_contradicts_sequence(reference):
             item("PRECONDITION", "fan_inserted", "health_checked"),
         ],
     }
-    result = build_requirement_set(doc, raw, {1}, "fake")
+    result = build_requirement_set(doc, raw, {6, 7, 11}, "fake")
     kept = [r.constraint.signature() for r in result.requirement_set.requirements]
     assert kept == ["BEFORE(health_checked,bezel_installed)", "AFTER(health_checked,fan_inserted)", "PRECONDITION(fan_inserted,health_checked)"]
     assert all("contradicts the step order" in r.error for r in result.rejected)

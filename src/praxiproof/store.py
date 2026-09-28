@@ -57,6 +57,10 @@ class Store:
             rows = self._db.execute(f"SELECT data FROM {table} ORDER BY seq DESC LIMIT ?", (limit,)).fetchall()
         return [json.loads(r[0]) for r in rows]
 
+    def delete(self, table: str, record_id: str) -> None:
+        with self._lock, self._db:
+            self._db.execute(f"DELETE FROM {table} WHERE id = ?", (record_id,))
+
     def put_evidence(self, items: Iterable[Evidence]) -> None:
         with self._lock, self._db:
             self._db.executemany(
