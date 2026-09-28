@@ -73,3 +73,14 @@ def test_evaluation_api_exposes_the_fragment_merge_results(tmp_path):
 
     (tmp_path / "fragment_merge.json").write_text(json.dumps({"tolerance": 1.2}))
     assert load_evaluation(tmp_path)["fragment_merge"] == {"tolerance": 1.2}
+
+
+def test_evaluation_api_exposes_the_generalization_results(tmp_path):
+    from praxiproof.evaluation import load_evaluation
+
+    (tmp_path / "generalization.json").write_text(json.dumps({"videos": {"v1": {"seconds": 100, "predicted": [{"label": "a"}, {"label": "b"}]}}}))
+    (tmp_path / "generalization_verdicts.json").write_text(json.dumps({"rule_count": 10, "videos": {"v1": {"counts": {"PASS": 7, "VIOLATION": 2}}}}))
+    g = load_evaluation(tmp_path)["generalization"]
+    assert g["rule_count"] == 10
+    assert g["videos"] == [{"name": "v1", "seconds": 100, "events": 2, "pass": 7, "violation": 2}]
+    assert load_evaluation(tmp_path / "missing")["generalization"] is None

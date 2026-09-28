@@ -1,0 +1,181 @@
+{
+  "rule_count": 10,
+  "videos": {
+    "session1_9011-a01_C10095": {
+      "counts": {
+        "VIOLATION": 2,
+        "PASS": 7,
+        "UNVERIFIED": 1
+      },
+      "verdicts": [
+        {
+          "rule_id": "R-001",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        },
+        {
+          "rule_id": "R-002",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-003",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-004",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-005",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-006",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-007",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-008",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-009",
+          "status": "UNVERIFIED",
+          "reason_code": "order.isolated"
+        },
+        {
+          "rule_id": "R-010",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        }
+      ]
+    },
+    "session2_9012-c07c_C10095": {
+      "counts": {
+        "VIOLATION": 2,
+        "PASS": 7,
+        "UNVERIFIED": 1
+      },
+      "verdicts": [
+        {
+          "rule_id": "R-001",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        },
+        {
+          "rule_id": "R-002",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-003",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-004",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-005",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-006",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-007",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-008",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-009",
+          "status": "UNVERIFIED",
+          "reason_code": "order.isolated"
+        },
+        {
+          "rule_id": "R-010",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        }
+      ]
+    },
+    "session3_9014-a23_C10095": {
+      "counts": {
+        "VIOLATION": 3,
+        "PASS": 7
+      },
+      "verdicts": [
+        {
+          "rule_id": "R-001",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        },
+        {
+          "rule_id": "R-002",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-003",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-004",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-005",
+          "status": "PASS",
+          "reason_code": "must_have.pass"
+        },
+        {
+          "rule_id": "R-006",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-007",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-008",
+          "status": "PASS",
+          "reason_code": "order.pass"
+        },
+        {
+          "rule_id": "R-009",
+          "status": "VIOLATION",
+          "reason_code": "order.violation"
+        },
+        {
+          "rule_id": "R-010",
+          "status": "VIOLATION",
+          "reason_code": "unseen.violation"
+        }
+      ]
+    }
+  }
+}

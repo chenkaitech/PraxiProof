@@ -50,6 +50,16 @@ function secondLookSection(sl) {
     </div><p class="muted small">${esc(t("eval.sl_note"))}</p></section>`;
 }
 
+function generalizationSection(g) {
+  const totalPass = g.videos.reduce((n, v) => n + (v.pass || 0), 0);
+  const totalRules = g.rule_count * g.videos.length;
+  return `<section class="card mt"><div class="card-head"><h3>${t("eval.gen")}</h3><p>${esc(t("eval.gen_sub", { dataset: g.dataset }))}</p></div>
+    <p class="callout">${esc(t("eval.gen_callout", { pass: totalPass, total: totalRules }))}</p>
+    <table class="eval-table"><thead><tr><th>${t("eval.col_video")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_events")}</th><th>PASS</th><th>${t("eval.col_violation2")}</th><th>${t("eval.col_unverified2")}</th></tr></thead><tbody>
+    ${g.videos.map((v) => `<tr><td><code>${esc(v.name)}</code></td><td>${v.seconds}s</td><td>${v.events}</td><td><span class="chip ok">${v.pass || 0}</span></td><td>${v.violation ? `<span class="chip bad">${v.violation}</span>` : "-"}</td><td>${v.unverified ? `<span class="chip warn">${v.unverified}</span>` : "-"}</td></tr>`).join("")}
+    </tbody></table><p class="muted small">${esc(t("eval.gen_note"))}</p></section>`;
+}
+
 async function renderEvaluation() {
   const d = await rapi("/api/evaluation");
   const shipped = d.backends.find((b) => b.shipped);
@@ -83,5 +93,6 @@ async function renderEvaluation() {
     ${d.stepfun ? `<section class="card mt"><div class="card-head"><h3>${t("eval.stepfun")}</h3><p>${t("eval.stepfun_sub")}</p></div>
       <table class="eval-table"><thead><tr><th>${t("eval.col_model")}</th><th>${t("eval.col_time")}</th><th>${t("eval.col_rules")}</th></tr></thead><tbody>
       ${d.stepfun.runs.map((r) => `<tr><td>${esc(r.model)}</td><td>${r.seconds}s</td><td>${r.error ? `<span class="chip bad">${esc(r.error)}</span>` : `${r.rules}${r.rejected ? ` <span class="muted small">(${esc(t("eval.rejected", { n: r.rejected }))})</span>` : ""}`}</td></tr>`).join("")}
-      </tbody></table><p class="muted small">${esc(t("eval.stepfun_note"))}</p></section>` : ""}`;
+      </tbody></table><p class="muted small">${esc(t("eval.stepfun_note"))}</p></section>` : ""}
+    ${d.generalization ? generalizationSection(d.generalization) : ""}`;
 }

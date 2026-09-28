@@ -110,6 +110,17 @@ def _agents() -> list[dict[str, Any]]:
     ]
 
 
+def _generalization(eval_dir: Path) -> dict[str, Any] | None:
+    raw, verdicts = _load(eval_dir, "generalization"), _load(eval_dir, "generalization_verdicts")
+    if not raw or not verdicts:
+        return None
+    videos = []
+    for name, video in raw["videos"].items():
+        counts = verdicts["videos"][name]["counts"]
+        videos.append({"name": name, "seconds": video["seconds"], "events": len(video["predicted"]), **{k.lower(): v for k, v in counts.items()}})
+    return {"dataset": "Assembly101 (Sener et al., CVPR 2022, CC-BY-NC-4.0 sample)", "rule_count": verdicts["rule_count"], "videos": videos}
+
+
 def load_evaluation(eval_dir: Path | None = None) -> dict[str, Any]:
     eval_dir = eval_dir or DEFAULT_EVAL_DIR
     return {
@@ -120,5 +131,6 @@ def load_evaluation(eval_dir: Path | None = None) -> dict[str, Any]:
         "second_look": _load(eval_dir, "second_look"),
         "fragment_merge": _load(eval_dir, "fragment_merge"),
         "stepfun": _load(eval_dir, "stepfun_compile_benchmark"),
+        "generalization": _generalization(eval_dir),
         "agents": _agents(),
     }

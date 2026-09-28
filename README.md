@@ -188,6 +188,29 @@ PRAXIPROOF_VLM_PROVIDER=ollama
 
 **局限**:12 段录像来自同一套场景,所以这不能说明对其他环境的泛化;每折只用 7 段训练(线上模型用了 8 段),对线上模型是偏保守的估计;两个 demo 场景的 `BENCHMARK.md` 评的是确定性验证引擎,与这里的视频侧指标是两回事。
 
+## 跨领域泛化检查:一个完全没见过的场景
+
+上面所有录像都来自同一个 NVIDIA 样例数据集(同一个房间、同一台机箱)。查过之后确认这不是我们少下载了什么:该数据集官方仓库([`NVIDIA/sop-monitoring-blueprints`](https://github.com/NVIDIA/sop-monitoring-blueprints))自己写明只提供这一份样例数据;用户另外下载到 Spark 的 `sop-server-fan-installation-data_v1.0-260213.tar.gz` 解包后核对,也是完全相同的 12 段录像,没有新场景。要检验泛化,只能换一个真正不同的数据集。
+
+选的是 **Assembly101**(Sener 等,CVPR 2022;样例经由 [`pablovela5620/Assembly101-Sample`](https://huggingface.co/datasets/pablovela5620/Assembly101-Sample) 转发到 HuggingFace,CC-BY-NC-4.0 许可)——拆装玩具工程车的真实录像,和服务器风扇安装没有任何关系:不同数据集、不同场景、不同任务、不同参与者,DDM-Net 微调和参考图选择时都没见过。挑了 3 段不同场次(不同的玩具、不同的人、不同的螺丝刀),下载后抽帧人工核实内容(见 `deploy/eval/generalization/`),没有虚构。
+
+**做法上刻意避开了会不公平的部分**:DDM-Net 是专门针对服务器机箱微调的边界检测模型,拿它测这批录像测的是"和训练场景不一样"这个已知事实,不是泛化能力,所以改用 `local_vlm`(不依赖微调、纯滑窗直接问 VLM)后端。手册是新写的短流程("拆开玩具工程车再装回去"),用线上同一套文本模型编译,和其他场景走的是同一条代码路径,只是换了输入。
+
+编译出 5 个事件、10 条规则,`local_vlm` 后端逐段跑完(平均每段 871 秒,比训练场景的录像长很多,3 段总时长 731+799+1084 秒),再用**真实的确定性判定引擎**(不是另写的分析脚本)判定,结果见 `docs/eval/generalization.json` / `generalization_verdicts.json`:
+
+| | R-002~R-008(7 条:是否发生 + 顺序)| R-001/R-010(涉及 `screws_removed`)|
+|---|---|---|
+| session1 | 7 条全过 | 2 条违规 |
+| session2 | 7 条全过 | 2 条违规 |
+| session3 | 7 条全过 | 3 条违规(另 1 条顺序规则也违规)|
+
+- **核心结论站得住**:"拆开"和"装回"两个阶段是否发生、顺序对不对——这 7 条规则在 3 段完全陌生场景的录像上全部判对,包括最关键的 `BEFORE(toy_disassembled, toy_reassembled)`。文本编译器(手册转规则)和 VLM 滑窗理解在没见过的领域上没有失效。
+- **一个具体的失效点,3/3 次稳定复现**:编译器把"拧下螺丝"(`screws_removed`)和"拆解"(`toy_disassembled`)拆成了两个独立事件,但 VLM 从没有把"拧螺丝"单独识别出来过(3 段录像里出现次数都是 0)——这两个动作在真实螺丝刀操作里几乎同时发生,滑窗分类器区分不开。连带的 `MUST_HAVE(screws_removed)` 和 `BEFORE(screws_removed, toy_disassembled)` 因此在 3 段里全部判违规。这不是随机噪声,是事件颗粒度比观测能力更细导致的系统性问题,和项目里其他地方"规则拆得比视觉分辨率细"的教训是同一类。
+- **一条更细的顺序规则(`BEFORE(toy_disassembled, parts_set_aside)`)判定不稳**:2 段"证据不足"、1 段"违规"。这条规则本身可能不太合理——现实中"拆一个零件"和"随手放到一边"是交替进行的,不是先拆完全部再统一归置,规则把它们当成两个严格分先后的动作,可能是手册编译器把描述性文字读得太字面。
+- **复现**:`deploy/eval/generalization_eval.py` 跑推理(需要 GPU,在 Spark 上跑),`python -m praxiproof.eval.generalization_summary` 用真实规则引擎打分(纯 CPU,秒级)。
+
+**局限**:3 段录像、1 个新领域,不是统计意义上的基准测试;人工核实抽样帧只做了粗粒度检查(20 到 60 秒一帧),不是逐秒标注;`local_vlm` 后端本来就比 `ddm_vlm` 慢且精度更低(见上面的消融实验),这里测的是"框架能不能套到新领域",不是"新领域上的最终精度"。
+
 ## 对照实验:直接问 VLM vs PraxiProof
 
 为了说明"确定性验证引擎 + 证据链"比直接让 VLM 判断强在哪,在 Spark 上做了对照:6 段 NVIDIA 数据集里的编辑录像(`Install_12`/`Install_13` 各一段合规、缺机盖、电源先于风扇),真值已知。**基线**是 `gemma4:31b` 看到手册全文和 16 张带时间戳的关键帧后直接回答"是否合规",换 3 个采样相位各问一次;**PraxiProof** 是线上的一键流水线。原始数据 `docs/eval/baseline_vs_praxiproof.json`。
@@ -289,6 +312,6 @@ Apache License 2.0,全文见 `LICENSE`。
 
 - [ ] 步骤匹配(把观测到的动作对到手册步骤)在 StepFun 上比本地 qwen 更保守:`scripts/diagnose_alignment.py` 实测 StepFun 三个变体各重复 3 次都把"风扇接线"和"风扇按入"判为无匹配,qwen 则都映射到同一步骤(但这样会把一个风扇数成两个事件,对 `COUNT ≥ n` 有假通过风险,所以保守未必是错)。真实视频流程里视觉后端的标签直接取自手册词表,基本是精确匹配,不经过这一步;只影响标签体系与手册不一致的演示观测。没有据此改匹配器。
 - [ ] StepFun 编译的稳定性只在同一份手册上测过(8 次里 7 次成功);换几份不同的手册(尤其是长的 PDF)再测,并观察循环生成的发生率。
-- [ ] 补拍其他环境的录像验证跨场景泛化(目前 12 段来自同一套场景);把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
+- [ ] 跨领域泛化只测了 3 段(Assembly101,见上文),样本太小;换更多领域、更多段数重复这个检查,并考虑修一下把 `screws_removed` 拆得太细的编译提示词。把微调扩展到 VLM(`sop-cr-finetuning-plugin`)。
 - [ ] `BENCHMARK.md` 补上真实 Ollama 环境下的 Efficiency 与"带/不带 skill"对比。
 - [ ] 录制 Demo 演示视频、撰写黑客松十日谈征文、补团队合影。
