@@ -1,0 +1,127 @@
+{
+  "item": "VESKEN_50453881",
+  "video_seconds": 55,
+  "pipeline_seconds": 170,
+  "manual_events": [
+    "wheels_attached_to_legs",
+    "legs_attached_to_tray",
+    "posts_inserted"
+  ],
+  "detected_events": [
+    {
+      "label": "wheels_attached_to_legs",
+      "start": 7.0,
+      "end": 10.6,
+      "confidence": 0.9
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 11.0,
+      "end": 12.8,
+      "confidence": 0.8
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 25.0,
+      "end": 35.0,
+      "confidence": 0.8
+    },
+    {
+      "label": "wheels_attached_to_legs",
+      "start": 35.7,
+      "end": 39.2,
+      "confidence": 0.8
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 35.9,
+      "end": 39.4,
+      "confidence": 0.8
+    },
+    {
+      "label": "wheels_attached_to_legs",
+      "start": 46.6,
+      "end": 49.2,
+      "confidence": 0.8
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 46.7,
+      "end": 51.2,
+      "confidence": 0.8
+    }
+  ],
+  "gold_events": [
+    {
+      "label": "wheels_attached_to_legs",
+      "start": 11.5,
+      "end": 13.3
+    },
+    {
+      "label": "wheels_attached_to_legs",
+      "start": 14.6,
+      "end": 17.6
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 18.7,
+      "end": 32.7
+    },
+    {
+      "label": "legs_attached_to_tray",
+      "start": 36.9,
+      "end": 38.6
+    },
+    {
+      "label": "posts_inserted",
+      "start": 42.3,
+      "end": 44.5
+    },
+    {
+      "label": "posts_inserted",
+      "start": 46.9,
+      "end": 49.5
+    }
+  ],
+  "detection_metrics": {
+    "precision": 0.286,
+    "recall": 0.333,
+    "f1": 0.308,
+    "mean_iou": 0.479
+  },
+  "verdicts": [
+    {
+      "rule_id": "R-001",
+      "status": "PASS",
+      "reason": "wheels_attached_to_legs observed 3 times (\u2265 2)"
+    },
+    {
+      "rule_id": "R-002",
+      "status": "PASS",
+      "reason": "legs_attached_to_tray observed 4 times (\u2265 2)"
+    },
+    {
+      "rule_id": "R-003",
+      "status": "VIOLATION",
+      "reason": "posts_inserted observed 0 times, 2 required"
+    },
+    {
+      "rule_id": "R-004",
+      "status": "PASS",
+      "reason": "wheels_attached_to_legs precedes legs_attached_to_tray"
+    },
+    {
+      "rule_id": "R-005",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "reason": "posts_inserted was not observed; cannot check legs_attached_to_tray before posts_inserted"
+    }
+  ],
+  "expected_verdicts": {
+    "R-001": "PASS",
+    "R-002": "PASS",
+    "R-003": "PASS",
+    "R-004": "PASS",
+    "R-005": "PASS"
+  },
+  "all_pass": false
+}

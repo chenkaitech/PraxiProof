@@ -1,0 +1,94 @@
+{
+  "item": "UPPSPEL_70499840",
+  "scope_note": "partial: only manual steps 1 (hardware) and 3 (rails) were hand-verified; pages 5, 7-22 excluded",
+  "video_seconds": 56,
+  "pipeline_seconds": 174,
+  "manual_events": [
+    "hardware_installed_on_panel",
+    "rails_installed_on_panel"
+  ],
+  "detected_events": [
+    {
+      "label": "rails_installed_on_panel",
+      "start": 6.4,
+      "end": 7.5,
+      "confidence": 1.0
+    },
+    {
+      "label": "hardware_installed_on_panel",
+      "start": 6.4,
+      "end": 8.6,
+      "confidence": 1.0
+    },
+    {
+      "label": "hardware_installed_on_panel",
+      "start": 30.6,
+      "end": 31.4,
+      "confidence": 1.0
+    },
+    {
+      "label": "rails_installed_on_panel",
+      "start": 34.6,
+      "end": 38.1,
+      "confidence": 1.0
+    },
+    {
+      "label": "rails_installed_on_panel",
+      "start": 39.0,
+      "end": 39.9,
+      "confidence": 1.0
+    },
+    {
+      "label": "hardware_installed_on_panel",
+      "start": 39.0,
+      "end": 39.0,
+      "confidence": 0.4
+    }
+  ],
+  "gold_events": [
+    {
+      "label": "hardware_installed_on_panel",
+      "start": 4.8,
+      "end": 6.7
+    },
+    {
+      "label": "rails_installed_on_panel",
+      "start": 7.5,
+      "end": 8.6
+    },
+    {
+      "label": "rails_installed_on_panel",
+      "start": 8.7,
+      "end": 10
+    }
+  ],
+  "detection_metrics": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "mean_iou": 0.0
+  },
+  "verdicts": [
+    {
+      "rule_id": "R-001",
+      "status": "PASS",
+      "reason": "hardware_installed_on_panel observed"
+    },
+    {
+      "rule_id": "R-002",
+      "status": "PASS",
+      "reason": "rails_installed_on_panel observed 3 times (\u2265 2)"
+    },
+    {
+      "rule_id": "R-003",
+      "status": "UNVERIFIED",
+      "reason": "hardware_installed_on_panel and rails_installed_on_panel are too close in time to determine order"
+    }
+  ],
+  "expected_verdicts": {
+    "R-001": "PASS",
+    "R-002": "PASS",
+    "R-003": "PASS"
+  },
+  "all_pass": false
+}

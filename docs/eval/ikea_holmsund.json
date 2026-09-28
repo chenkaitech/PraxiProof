@@ -1,0 +1,90 @@
+{
+  "item": "HOLMSUND_s69240762",
+  "scope_note": "partial/highlights video covering only manual steps 17 and 32-40 of 41 total; not a full assembly",
+  "video_seconds": 60,
+  "pipeline_seconds": 98,
+  "manual_events": [
+    "frame_leg_attached",
+    "cushion_cover_fitted"
+  ],
+  "detected_events": [
+    {
+      "label": "cushion_cover_fitted",
+      "start": 29.0,
+      "end": 40.1,
+      "confidence": 0.8
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 52.5,
+      "end": 53.4,
+      "confidence": 0.7
+    }
+  ],
+  "gold_events": [
+    {
+      "label": "frame_leg_attached",
+      "start": 7.1,
+      "end": 20
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 20.1,
+      "end": 36.9
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 36.9,
+      "end": 39.2
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 39.2,
+      "end": 41.4
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 41.4,
+      "end": 42.1
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 42.1,
+      "end": 47.4
+    },
+    {
+      "label": "cushion_cover_fitted",
+      "start": 47.4,
+      "end": 59.6
+    }
+  ],
+  "detection_metrics": {
+    "precision": 0.5,
+    "recall": 0.143,
+    "f1": 0.222,
+    "mean_iou": 0.395
+  },
+  "verdicts": [
+    {
+      "rule_id": "R-001",
+      "status": "VIOLATION",
+      "reason": "frame_leg_attached was not observed anywhere in the video; the step is mandatory"
+    },
+    {
+      "rule_id": "R-002",
+      "status": "PASS",
+      "reason": "cushion_cover_fitted observed 2 times (\u2265 1)"
+    },
+    {
+      "rule_id": "R-003",
+      "status": "VIOLATION",
+      "reason": "frame_leg_attached was not observed anywhere in the video; it must happen before cushion_cover_fitted"
+    }
+  ],
+  "expected_verdicts": {
+    "R-001": "PASS",
+    "R-002": "PASS",
+    "R-003": "PASS"
+  },
+  "all_pass": false
+}
