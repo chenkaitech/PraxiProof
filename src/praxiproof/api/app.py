@@ -26,13 +26,19 @@ from praxiproof.video.backend import VideoBackend
 from praxiproof.video.frames import FFmpegError
 
 STATIC_DIR = Path(__file__).parent / "static"
-ASSET_URLS = ("/static/styles.css", "/static/logo.svg", "/static/i18n.js", "/static/app.js")
+JS_DIR = STATIC_DIR / "js"
+ASSET_URLS = (
+    "/static/styles.css",
+    "/static/logo.svg",
+    "/static/i18n.js",
+    *(f"/static/js/{p.relative_to(JS_DIR).as_posix()}" for p in sorted(JS_DIR.rglob("*.js"))),
+)
 
 
 def _versioned_index() -> str:
     html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
     for url in ASSET_URLS:
-        digest = hashlib.sha256((STATIC_DIR / Path(url).name).read_bytes()).hexdigest()[:10]
+        digest = hashlib.sha256((STATIC_DIR / url.removeprefix("/static/")).read_bytes()).hexdigest()[:10]
         html = html.replace(f'"{url}"', f'"{url}?v={digest}"')
     return html
 

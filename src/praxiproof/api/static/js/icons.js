@@ -1,0 +1,21 @@
+// Inline SVGs. Kept as markup strings (not an icon font) so they can pick up theme colors via CSS variables.
+const ICON = {
+  pdf: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:var(--muted)"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><rect x="3" y="12" width="12" height="7" rx="1.5" fill="var(--viol-solid)" stroke="var(--viol-solid)"/><text x="4.4" y="17.6" font-size="5" fill="#fff" stroke="none" font-family="Arial" font-weight="700">PDF</text></svg>',
+  play: '<svg viewBox="0 0 24 24" style="width:44px;height:44px;color:var(--muted)"><rect x="2" y="4" width="20" height="16" rx="3" fill="var(--muted)" stroke="var(--muted)"/><path d="M10 9l5 3-5 3z" fill="#fff" stroke="#fff"/></svg>',
+  doc: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>',
+  list: '<svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  cam: '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>',
+  screen: '<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  check: '<svg viewBox="0 0 24 24" style="color:var(--pass-solid);width:26px;height:26px"><circle cx="12" cy="12" r="10" fill="var(--pass-solid)" stroke="var(--pass-solid)"/><path d="m7.5 12.5 3 3 6-6" stroke="#fff"/></svg>',
+  spin: '<svg viewBox="0 0 24 24" style="width:24px;height:24px;color:var(--accent)"><path d="M12 3a9 9 0 1 0 9 9"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>',
+  fail: '<svg viewBox="0 0 24 24" style="color:var(--viol-solid);width:26px;height:26px"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg>',
+  alert: '<svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" class="arrow"><path d="M4 12h15M13 6l6 6-6 6"/></svg>',
+  cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  stageManual: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6"/></svg>',
+  stageIR: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h2M9 15h2M13 11h2M13 15h2"/></svg>',
+  stageAlign: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5 6.5 17M12 11.5l5.5 5.5"/></svg>',
+  stageVerify: '<svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>',
+  stageSkill: '<svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>',
+};

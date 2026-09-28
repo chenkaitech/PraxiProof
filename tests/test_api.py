@@ -187,8 +187,9 @@ def test_health_and_index(client):
     assert health["status"] == "ok" and health["models"] == {"llm": True, "vlm": True}
     index = client.get("/")
     assert "PraxiProof" in index.text and index.headers["cache-control"] == "no-cache"
-    assert '/static/app.js?v=' in index.text and '/static/i18n.js?v=' in index.text and '/static/styles.css?v=' in index.text
+    assert '/static/js/router.js?v=' in index.text and '/static/i18n.js?v=' in index.text and '/static/styles.css?v=' in index.text
     assert client.get("/static/i18n.js").headers["cache-control"] == "no-cache"
+    assert client.get("/static/js/router.js").status_code == 200
 
 
 def test_manual_that_compiles_to_zero_rules_fails_instead_of_looking_ready(settings):
