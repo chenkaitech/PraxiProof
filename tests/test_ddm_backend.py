@@ -1,5 +1,3 @@
-import re
-
 from praxiproof.ir.requirement import EventDef
 from praxiproof.video.ddm_vlm_adapter import INFER_SCRIPT, DDMRunner, DDMVLMBackend
 from praxiproof.video.references import ReferenceExample, assign_references, load_references, save_references

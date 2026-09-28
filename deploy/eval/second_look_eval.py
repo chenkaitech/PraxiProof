@@ -12,7 +12,6 @@ Usage (on the Spark, from ~/praxiproof, service running):
     uv run python deploy/eval/second_look_eval.py            # writes ~/praxiproof-data/eval/second_look.json
 """
 import json
-from collections import Counter
 from pathlib import Path
 
 from praxiproof.constraints.engine import evaluate
