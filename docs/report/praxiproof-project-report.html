@@ -150,11 +150,11 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
 
 <header class="hero">
   <div class="hero-inner">
-    <div class="kicker">第三届 NVIDIA DGX Spark 黑客松 · Agent Skills 项目报告</div>
+    <div class="kicker">DGX Spark Hackathon · 项目报告书</div>
     <h1>PraxiProof：把操作手册编译成可执行规则，用真实视频核验</h1>
     <p class="lead">手册是静态文本，技术员是否按流程做对了，只有看视频才知道，人工逐帧核对代价很高。PraxiProof 把手册编译成可执行约束，把视频编译成带时间戳的事件序列，两边用确定性代码比对，每条 verdict 都能追溯到具体的手册引用和视频时间段。</p>
     <div class="hero-meta">
-      <span><b>研发周期</b> 2026-09-17 至 2026-09-28（12 个自然日，6 个有提交记录的工作日）</span>
+      <span><b>研发周期</b> 2026-09-17 至 2026-09-29（13 个自然日，7 个有提交记录的工作日）</span>
       <span><b>部署</b> NVIDIA DGX Spark（GB10，arm64）</span>
       <span><b>许可证</b> Apache-2.0</span>
     </div>
@@ -172,9 +172,9 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
       <thead><tr><th>评审维度</th><th>本项目对应内容</th><th>核验入口</th></tr></thead>
       <tbody>
         <tr><td>实用性、落地价值与创新性 <b>25%</b></td><td>手册引用 → 视频时间段 → 四态判定的证据链；与直接问 VLM 的对照</td><td><a href="../eval/baseline_vs_praxiproof.json">对照结果</a> · <a href="../../src/praxiproof/constraints/engine.py">验证引擎</a></td></tr>
-        <tr><td>智能体与模型优化深度 <b>25%</b></td><td>Compliance/RCA Agent 协作、可调用的 Skill、DDM-Net 微调与消融、StepFun 实测</td><td><a href="../screenshots/run-agent-trace.png">Agent 轨迹</a> · <a href="../eval/cv_summary.json">交叉验证</a> · <a href="../eval/stepfun_live.json">StepFun 记录</a></td></tr>
+        <tr><td>智能体与模型优化深度 <b>25%</b></td><td>Compliance/RCA Agent 协作、可调用的 Skill、DDM-Net 微调与消融</td><td><a href="../screenshots/run-agent-trace.png">Agent 轨迹</a> · <a href="../eval/cv_summary.json">交叉验证</a></td></tr>
         <tr><td>项目完整性 <b>20%</b></td><td>前后端、部署脚本、两套独立 demo 与测试入口</td><td><a href="../../README.md">运行说明</a> · <a href="../../deploy/deploy.sh">Spark 部署</a> · <a href="../../scripts/ui_smoke.py">界面检查</a></td></tr>
-        <tr><td>平台适配性 <b>15%</b></td><td>GB10/arm64 实机运行；NVIDIA NGC 容器与 DDM-Net；本地 Ollama 和 StepFun 按角色组合</td><td><a href="../../deploy/ddm/Dockerfile">推理容器</a> · <a href="../eval/stepfun_compile_benchmark.json">模型对比</a></td></tr>
+        <tr><td>平台适配性 <b>15%</b></td><td>GB10/arm64 实机运行；NVIDIA NGC 容器与 DDM-Net；本地与云端模型按角色组合</td><td><a href="../../deploy/ddm/Dockerfile">推理容器</a></td></tr>
         <tr><td>演示效果 <b>10%</b></td><td>一键流水线、逐条证据、Agent 追问和 Skill 下载均有界面；正式 Demo 视频需另附</td><td><a href="../screenshots/runs.png">运行页</a> · <a href="../screenshots/run-why.png">规则解释</a> · <a href="../../demo/sample-skill/server-fan-power-supply-and-cover-installation/SKILL.md">Skill 样例</a></td></tr>
         <tr><td>赛事征文 <b>5%</b></td><td>开发历程与失败案例另成《十日谈》</td><td><a href="praxiproof-ten-day-tale.html">阅读《十日谈》</a></td></tr>
       </tbody>
@@ -197,7 +197,7 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
   <p class="section-sub">操作合规核验为什么值得用一整套系统去解决，而不是靠人工抽检。</p>
   <p>制造、维修、安装、实验室操作等场景普遍依赖书面 SOP（标准作业程序）。SOP 通常以 PDF 或 Word 文档的形式存在，是静态文本；而“技术员这一次是不是真的按顺序、按要求做的”，只有回看操作视频才能确认。人工逐帧核对视频代价很高：一段几分钟的安装录像，逐条对照手册要求、记下时间点、判断顺序和计数是否符合，熟练的审核员也要花上视频本身好几倍的时间，而且不同审核员之间的判断标准很难完全一致。</p>
   <p>这个问题在需要频繁复核的场景里会被放大：新员工培训阶段的抽检、外包产线的合规审计、事故后的根因排查，都需要“把一段视频和一份手册对上号”，而且往往不是核对一次就够，手册会改版、审核标准会调整，人工核对的成本会重复发生。</p>
-  <p>PraxiProof 是这个问题的一次工程化尝试：面向 NVIDIA DGX Spark Hackathon，在 2026-09-17 至 2026-09-28 的 12 个自然日（6 个有提交记录的实际工作日）内，从零构建并在真实 DGX Spark 硬件上部署了一套端到端系统。</p>
+  <p>PraxiProof 是这个问题的一次工程化尝试：面向 NVIDIA DGX Spark Hackathon，在 2026-09-17 至 2026-09-29 的 13 个自然日（7 个有提交记录的实际工作日）内，从零构建并在真实 DGX Spark 硬件上部署了一套端到端系统，随后又补充了跨领域泛化评测。</p>
 </section>
 
 <section class="section" id="problem">
@@ -237,7 +237,7 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
     </div>
     <div class="card">
       <h4 style="margin:0 0 6px;font-size:16px;">供应商无关、角色级别的模型可插拔架构</h4>
-      <p style="margin:0;font-size:14.5px;color:var(--text-2);">文本编译与视觉理解分别配置模型。本地 Ollama 与 StepFun 可按角色组合；模型输出统一为结构化规则和带时间戳的事件，下游确定性验证引擎无需随模型切换而改动。</p>
+      <p style="margin:0;font-size:14.5px;color:var(--text-2);">文本编译与视觉理解分别配置模型。本地模型与云端模型可按角色组合；模型输出统一为结构化规则和带时间戳的事件，下游确定性验证引擎无需随模型切换而改动。</p>
     </div>
     <div class="card">
       <h4 style="margin:0 0 6px;font-size:16px;">Skill 打包对齐 NVIDIA Verified Skills 规范</h4>
@@ -270,7 +270,7 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
       <div class="arch-node"><small class="arch-kicker">可复用成果</small><b>Agent Skill</b><span>SKILL.md · 引用 · 负例评测</span></div>
       <div class="arch-node"><small class="arch-kicker">交互解释</small><b>Compliance Agent ↔ RCA Agent</b><span>追问、根因分析；可读取生成的 Skill</span></div>
     </div>
-    <figcaption>DGX Spark 承载 Web 服务、本地视频推理、DDM-Net 与核验流程；文本模型可选本地 Ollama 或 StepFun 云端服务。</figcaption>
+    <figcaption>DGX Spark 承载 Web 服务、本地视频推理、DDM-Net 与核验流程；文本模型可选本地 Ollama 或云端服务。</figcaption>
   </figure>
   <div class="card">
     <ol>
@@ -282,7 +282,7 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
       <li><b>Skill 打包</b>：把一次验证结果连同证据链编译成可分发的 Agent Skill，格式对齐 NVIDIA Verified Skills 规范，包含负例评测。</li>
     </ol>
   </div>
-  <p style="margin-top:18px;">整套系统常驻部署在一台 NVIDIA DGX Spark（GB10，arm64）上，systemd 用户级服务开机自启（<code>Linger=yes</code>）。Web 服务、Ollama 本地推理、DDM-Net 训练与推理和已完成的视频实验在这台机器上运行；手册编译也可调用 StepFun 云端模型，不能把这部分算作 Spark 本地推理。</p>
+  <p style="margin-top:18px;">整套系统常驻部署在一台 NVIDIA DGX Spark（GB10，arm64）上，systemd 用户级服务开机自启（<code>Linger=yes</code>）。Web 服务、Ollama 本地推理、DDM-Net 训练与推理和已完成的视频实验在这台机器上运行；手册编译也可调用云端模型，不能把这部分算作 Spark 本地推理。</p>
 </section>
 
 <section class="section" id="components">
@@ -343,26 +343,16 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
 
   <h3>5.7 Agent Skills：生成、评测与调用</h3>
   <p><code>src/praxiproof/compiler/agent_skill.py</code> 把一次验证结果（规则、证据、判定结论）打包成可分发的 Agent Skill，产物包含 <code>SKILL.md</code>、<code>references/</code>、<code>evals/evals.json</code>、<code>BENCHMARK.md</code>、<code>skill-card.md</code>。结构设计参照 NVIDIA Verified Skills 规范；每个 skill 自带负例评测。这是格式对齐，并不表示获得 NVIDIA 官方认证。Compliance Agent 的只读工具 <code>load_verified_skill</code> 可按 run ID 读取已生成的 Skill，供后续问答调用；示例产物见<a href="../../demo/sample-skill/server-fan-power-supply-and-cover-installation/SKILL.md">样例 SKILL.md</a>。</p>
-  <span class="verdict verified">已验证：生成的 38 个 skill 包全部带负例评测</span>
+  <span class="verdict verified">已验证：开发过程中生成的 38 个 skill 包全部带负例评测（数据库整理后线上仪表盘保留 6 个对应完整流水线重跑的样例）</span>
 
   <h3>5.8 部署与运维：DGX Spark</h3>
-  <p>整套系统常驻部署在一台 NVIDIA DGX Spark（GB10，arm64）上，systemd 用户级服务配置了 <code>Linger=yes</code>，Web 服务、Ollama 本地模型推理和 DDM-Net 训练/推理在实机运行。文本编译还实测接入了 StepFun <code>step-3.5-flash</code> 等模型，用于手册编译与 Agent 工具调用；其计算发生在云端，Spark 负责其余本地流水线。不同模型可按文本/视觉角色组合，结果记录在 <a href="../eval/stepfun_live.json">StepFun 实测文件</a> 和 <a href="../eval/stepfun_compile_benchmark.json">编译对比</a> 中。</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>文本模型</th><th>运行位置</th><th>单次编译耗时</th><th>生成规则</th></tr></thead>
-      <tbody>
-        <tr><td>StepFun step-3.5-flash</td><td>云端 API</td><td class="num">94 秒</td><td class="num">17 条</td></tr>
-        <tr><td>qwen3.6:35b-a3b-q8_0</td><td>DGX Spark 本地</td><td class="num">190 秒</td><td class="num">15 条</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="fact">同一份手册的单次观测，用于说明文本模型可切换；运行条件不同，不作模型优劣排名。原始记录见<a href="../eval/stepfun_compile_benchmark.json">编译数据</a>。</p>
+  <p>整套系统常驻部署在一台 NVIDIA DGX Spark（GB10，arm64）上，systemd 用户级服务配置了 <code>Linger=yes</code>，Web 服务、Ollama 本地模型推理和 DDM-Net 训练/推理在实机运行。手册编译也支持接入云端模型，用于手册编译与 Agent 工具调用；其计算发生在云端，Spark 负责其余本地流水线。文本模型与视觉模型可分角色独立配置，切换供应商不影响下游确定性验证引擎。</p>
 </section>
 
 <section class="section" id="experiments">
   <div class="section-no">06</div>
   <h2>实验分析</h2>
-  <p class="section-sub">视频推理与耗时来自 DGX Spark 实机运行；StepFun 编译调用云端 API。各组实验的数据集和评测范围不同，原始记录见 <code>docs/eval/</code>。</p>
+  <p class="section-sub">全部数字来自 DGX Spark 上的实际运行，不是估算；各组实验的数据集和评测范围不同，原始记录见 <code>docs/eval/</code>。</p>
 
   <h3>6.1 架构选型对照实验：直接问 VLM vs. 拆分流水线</h3>
   <p>最直接的做法是把视频帧和手册文本一起丢给 VLM，问它“合规吗”。对照实验：同一段视频用直接问 VLM 的方式测 3 次，只有 4/12 次判对违规类型，其中 6/12 次直接说“合规”（漏报），同一段录像换一次抽帧方式就可能改口，6 段里只有 4 段前后一致。这个结果是拆分成“手册编译成规则”和“视频编译成事件”两条独立管线的直接依据。</p>
@@ -391,7 +381,8 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
   <p>用 6 段人工编辑过的录像（包含刻意插入的顺序违规、数量违规）完整跑一遍从视频到判定的全流程，5/6 判定类别正确，其中 4 段真实违规全部判对，0 段被误放行。</p>
 
   <h3>6.6 跨领域泛化：Assembly101</h3>
-  <p>以拆装玩具工程车的公开数据集 Assembly101（CC-BY-NC-4.0）做跨领域检查：3 段录像、10 条选定规则中有 7 条判定正确，包括关键的顺序约束。针对动作颗粒度不一致的问题，编译提示词加入“工具或手法不单列为事件”，6 次后续编译中有 4 次按预期生成规则。另有 8 段视频及官方动作标注已备齐，尚未计入本次成绩。</p>
+  <p>以拆装玩具工程车的公开数据集 Assembly101（CC-BY-NC-4.0）做跨领域检查：3 段录像、10 条选定规则中有 7 条判定正确，包括关键的顺序约束。针对动作颗粒度不一致的问题，编译提示词加入“工具或手法不单列为事件”，6 次后续编译中有 4 次按预期生成规则。</p>
+  <p>在此基础上又补测了 8 段不同参与者、不同玩具的留出会话，用固定规则和固定标注映射（跨 8 个不同玩具复用同一套“拆卸/组装”事件词汇和同一条顺序约束，不做逐会话定制），标注取自 Assembly101 官方 <code>coarse-annotations</code>。结果：<b>R-003（拆卸必须先于组装）在 8 段里 7 段判对</b>；唯一的反例（会话 9033-a30）是真实的漏检，不是误判：观测端在全程只识别出 3 个拆卸动作、0 个组装动作（真实标注里有 25 个），系统正确报出“组装步骤缺失”的违规和“证据不足以判顺序”，没有猜测。8 段录像的事件级 F1 全部偏低（0.0–0.154），细粒度时间边界检测是明显弱项，但粗粒度的“有没有发生/顺序对不对”判断在 7/8 会话上依然成立。原始数据见 <a href="../eval/assembly101_expansion.json">assembly101_expansion.json</a>。</p>
 
   <h3>6.7 跨领域压力测试：IKEA-ASW</h3>
   <p>在 Spark 上以三段 IKEA 装配视频检查新领域适应性。结果按产品列出，便于评委从原始文件逐条核查：</p>
@@ -418,7 +409,8 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
         <tr><td>直接问 VLM 对照实验</td><td class="num">4/12 判对类型</td><td>PraxiProof 4/4 判对，且给出引用与时间段</td></tr>
         <tr><td>二次核验：可放行录像数</td><td class="num">8 → 11 / 12</td><td>4 段真实违规录像 0 段被误放行</td></tr>
         <tr><td>完整流水线真实重跑（6 段编辑录像）</td><td class="num">5/6 判定类别正确</td><td>4 段违规全部判对，0 段被误放行</td></tr>
-        <tr><td>跨领域泛化（Assembly101，3 段）</td><td class="num">7/10 条规则命中</td><td>失效点集中在 1 个已知颗粒度问题</td></tr>
+        <tr><td>跨领域泛化（Assembly101，3 段，人工选定规则）</td><td class="num">7/10 条规则命中</td><td>失效点集中在 1 个已知颗粒度问题</td></tr>
+        <tr><td>跨领域泛化扩展（Assembly101，8 段留出会话，固定规则）</td><td class="num">R-003 7/8 通过</td><td>唯一反例是真实漏检；事件 F1 普遍偏低（0.0–0.154）</td></tr>
         <tr><td>IKEA-ASW 外域探索（3 段、11 条选定规则）</td><td class="num">6/11 PASS</td><td>局部人工规则，分产品结果见上表</td></tr>
       </tbody>
     </table>
@@ -430,8 +422,8 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
   <h2>下一阶段重点</h2>
   <p class="section-sub">现有结果之外，优先扩大可验证的场景覆盖。</p>
   <ul class="limits">
-    <li><b>扩大外域评测：</b>完成已备齐的 8 段 Assembly101 会话评测，加入不同手册与违规负样本。</li>
-    <li><b>增强新场景识别：</b>为装配图加入步骤提取，并以参考图和少量领域样本改善短动作检测。</li>
+    <li><b>跨领域细粒度检测是目前最明确的短板。</b>Assembly101 8 段留出会话和 IKEA-ASW 3 个产品的结果指向同一个结论：不做领域微调、没有参考图时，<code>local_vlm</code> 的事件级 F1 普遍在 0–0.31 之间（Assembly101 8 段：0.0–0.154；IKEA 三段：0.000–0.308），比同一套后端在 DDM-Net 微调过的风扇场景上的表现差一个数量级。好消息是粗粒度的“有没有发生/顺序对不对”判断更稳：Assembly101 的顺序规则在 8 段里 7 段判对，唯一的反例（会话 9033-a30）是系统正确报出“组装步骤全程未观测到”的漏检，不是误判为合规。下一步需要复用 DDM-Net 微调 + 参考图的思路，在至少一个新领域上验证能否把细粒度检测拉到可用水平。</li>
+    <li><b>IKEA-ASW 的规则覆盖只到产品说明书的一小部分，不是完整流程。</b>装配图纸缺少可提取的文字（<code>src/praxiproof/document/extract.py</code> 在 IKEA 手册上只能拿到零件编号，拿不到步骤描述），因此 VESKEN/UPPSPEL/HOLMSUND 的规则是看着图纸手写的，且只覆盖各自手册里 2–3 个人工核实过的步骤（分别是 7/24/41 步说明书里的一小段），不是端到端全流程核验。另外原计划的 8 个产品里有 4 个（INGOLF、MATCHSPEL、BOSNÄS、VITTSJÖ）因为 IKEA 官网手册链接失效或 YouTube 对同一 IP 的连续请求限流，多次重试后仍未能补齐，这是外部依赖的真实限制，不是评测设计的选择。</li>
     <li><b>强化证据审核：</b>对安全类规则增加人工确认入口，并分别评测各类约束的二次核验效果。</li>
   </ul>
 </section>
@@ -439,7 +431,7 @@ footer { padding: 30px 0 60px; color: var(--muted); font-size: 13px; }
 <section class="section" id="conclusion">
   <div class="section-no">08</div>
   <h2>结论</h2>
-  <p>PraxiProof 在 12 天内完成了手册编译、视频事件识别、确定性核验、多智能体问答和 Skill 打包，并在 NVIDIA DGX Spark 实机部署。四折交叉验证中，DDM-VLM 的事件 F1 为 0.889，比同批纯 VLM 基线提高 0.355；碎片合并消融达到 0.945。6 段编辑录像的完整流水线重跑中，5 段判定类别正确，4 段真实违规均未被误放行。</p>
+  <p>PraxiProof 在核心 12 天内完成了手册编译、视频事件识别、确定性核验、多智能体问答和 Skill 打包，并在 NVIDIA DGX Spark 实机部署；随后又用一天补充了 Assembly101 扩展和 IKEA-ASW 两组跨领域评测。四折交叉验证中，DDM-VLM 的事件 F1 为 0.889，比同批纯 VLM 基线提高 0.355；碎片合并消融达到 0.945。6 段编辑录像的完整流水线重跑中，5 段判定类别正确，4 段真实违规均未被误放行。</p>
   <p>这套方案把专业流程封装成带来源、证据和负例评测的 Agent Skill，可供 Compliance Agent 按需读取。报告同时提供源码、运行入口、界面截图和原始评测文件；《十日谈》已备齐，正式 Demo 视频需在提交页另附。</p>
 </section>
 
